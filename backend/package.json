@@ -17,6 +17,8 @@
     "@types/express": "^5.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "firebase-admin": "^13.2.0",
+    "http-status-codes": "^2.3.0",
     "module-alias": "^2.2.3",
     "mongoose": "^8.12.1",
     "winston": "^3.17.0",
@@ -26,6 +28,7 @@
     "@": ".",
     "@config": "./src/config",
     "@controllers": "./src/controllers",
+    "@middleware": "./src/middleware",
     "@models": "./src/models",
     "@routes": "./src/routes",
     "@utils": "./src/utils"
