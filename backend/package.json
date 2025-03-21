@@ -15,6 +15,19 @@
   },
   "dependencies": {
     "@types/express": "^5.0.1",
-    "express": "^4.21.2"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "module-alias": "^2.2.3",
+    "mongoose": "^8.12.1",
+    "winston": "^3.17.0",
+    "zod": "^3.24.2"
+  },
+  "_moduleAliases": {
+    "@": ".",
+    "@config": "./src/config",
+    "@controllers": "./src/controllers",
+    "@models": "./src/models",
+    "@routes": "./src/routes",
+    "@utils": "./src/utils"
   }
 }
