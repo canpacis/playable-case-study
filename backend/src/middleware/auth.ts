@@ -1,6 +1,6 @@
 import admin, { type ServiceAccount } from "firebase-admin";
 import StatusCode from "http-status-codes";
-import type { NextFunction, Response, Request, RequestHandler } from "express";
+import type { NextFunction, Response, Request } from "express";
 import serviceAccount from "@utils/service_account.json";
 
 admin.initializeApp({
@@ -9,24 +9,26 @@ admin.initializeApp({
 
 const auth = admin.auth();
 
-export const authMiddleware = async function (
+export async function authMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
   const header = req.headers.authorization;
   if (!header) {
-    return res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
+    res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
+    return;
   }
   const token = header.split("Bearer ")[1];
   if (!token || token.trim().length === 0) {
-    return res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
+    res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
+    return;
   }
 
   try {
     req.user = await auth.verifyIdToken(token, true);
-    return next();
+    next();
   } catch (error) {
-    return res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
+    res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });
   }
-} as RequestHandler;
+}

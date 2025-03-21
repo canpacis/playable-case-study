@@ -13,3 +13,14 @@ export function checkEnv() {
     );
   }
 }
+
+export function formatZodError<T>(error: z.ZodError<T>): string {
+  const result: string[] = [];
+  for (const entry of Object.entries(error.flatten().fieldErrors)) {
+    const [key, message] = entry as [string, string];
+    if (message.length > 0) {
+      result.push(`${key} ${message}`);
+    }
+  }
+  return result.join(", ");
+}

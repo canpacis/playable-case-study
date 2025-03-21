@@ -3,7 +3,7 @@ import express, { type Request, type Response } from "express";
 import { checkEnv } from "@utils/misc";
 import { logger } from "@utils/logger";
 import { initDB } from "@config/db";
-import { authMiddleware } from "./src/middleware/auth";
+import { initTodoRoutes } from "./src/routes/todo";
 
 const app = express();
 const port = 5000;
@@ -18,9 +18,6 @@ try {
 
 app.use(express.json());
 
-app.get("/", authMiddleware, (req: Request, res: Response) => {
-  console.log(req.user);
-  res.json({ message: "Hi there! " + process.env.MONGO_URL });
-});
+initTodoRoutes(app);
 
 app.listen(port, () => console.log(`App is running on port ${port}`));
