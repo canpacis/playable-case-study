@@ -24,3 +24,10 @@ export function formatZodError<T>(error: z.ZodError<T>): string {
   }
   return result.join(", ");
 }
+
+export type Paginated<T> = {
+  items: T[];
+  total: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+};
