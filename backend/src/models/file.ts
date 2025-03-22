@@ -1,15 +1,15 @@
-import mongoose from "mongoose";
+import { Schema, model } from "mongoose";
 
-const fileSchema = new mongoose.Schema({
+const fileSchema = new Schema({
   location: String,
   original_name: String,
   owner: String,
   created_at: Date,
 });
 
-export const FileUpload = mongoose.model("File", fileSchema);
+export const FileUpload = model("File", fileSchema);
 
-const imageSchema = new mongoose.Schema({
+const imageSchema = new Schema({
   thumbnail: String,
   medium: String,
   original: String,
@@ -17,4 +17,4 @@ const imageSchema = new mongoose.Schema({
   created_at: Date,
 });
 
-export const ImageUpload = mongoose.model("Image", imageSchema);
+export const ImageUpload = model("Image", imageSchema);

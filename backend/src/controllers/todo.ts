@@ -2,8 +2,9 @@ import { z } from "zod";
 import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
 import { formatZodError, type Context, type Paginated } from "@utils/misc";
-import { Todo } from "@models/todo";
+import { Tag, Todo } from "@models/todo";
 import type { Document } from "mongoose";
+import { FileUpload } from "../models/file";
 
 export type TodoPriority = "high" | "medium" | "low";
 
@@ -14,6 +15,9 @@ const createTodoSchema = z.object({
   // this might cause problem if the app moves away from firebase (?)
   author: z.string().length(28),
   priority: z.enum(["high", "medium", "low"]),
+  // length of a mongo object id
+  tags: z.array(z.string().length(24)),
+  attachments: z.array(z.string().length(24)),
 });
 
 export type CreateTodoDTO = z.infer<typeof createTodoSchema>;
@@ -33,6 +37,18 @@ export async function createTodo(
     );
   }
   const { data } = validation;
+
+  const tagCount = await Tag.countDocuments({ _id: { $in: data.tags } });
+  if (tagCount !== data.tags.length) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "invalid tag relation");
+  }
+
+  const attachmentCount = await FileUpload.countDocuments({
+    _id: { $in: data.attachments },
+  });
+  if (attachmentCount !== data.attachments.length) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "invalid attachment relation");
+  }
 
   try {
     const doc = new Todo(data);

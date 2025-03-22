@@ -7,7 +7,7 @@ import {
   listTodos,
   updateTodo,
 } from "@controllers/todo";
-import { AppError, handleError } from "@config/error";
+import { handleError } from "@config/error";
 import { createContext } from "@utils/misc";
 
 export function initTodoRoutes(app: Application) {
