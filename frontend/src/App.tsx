@@ -1,30 +1,46 @@
 import "@mantine/core/styles.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 
-import { MantineProvider } from "@mantine/core";
+import { Flex, Loader, MantineProvider } from "@mantine/core";
 import { TodoPage } from "@components/TodoPage";
 import { LoginPage } from "@components/LoginPage";
-import { useLocalStorage } from "@mantine/hooks";
+import { auth } from "@utils/auth";
+import { useEffect, useState } from "react";
 
 export default function App() {
-  const [token] = useLocalStorage({
-    key: "id-token",
-  });
+  const [ready, setReady] = useState(false);
+  const [currentUser, setCurrentUser] = useState(auth.currentUser);
 
-  console.log(token);
+  useEffect(() => {
+    auth.onAuthStateChanged(() => {
+      setCurrentUser(auth.currentUser);
+      setReady(true);
+    });
+  }, []);
 
   return (
     <MantineProvider>
-      <BrowserRouter>
-        <Routes>
-          {!token ? (
-            <Route path="/" element={<Navigate to="/login" />} />
-          ) : (
-            <Route path="/" element={<TodoPage />} />
-          )}
-          <Route path="/login" element={<LoginPage />} />
-        </Routes>
-      </BrowserRouter>
+      {ready ? (
+        <BrowserRouter>
+          <Routes>
+            {!currentUser ? (
+              <>
+                <Route path="/" element={<Navigate to="/login" />} />
+                <Route path="/login" element={<LoginPage />} />
+              </>
+            ) : (
+              <>
+                <Route path="/" element={<TodoPage />} />
+                <Route path="/login" element={<Navigate to="/" />} />
+              </>
+            )}
+          </Routes>
+        </BrowserRouter>
+      ) : (
+        <Flex h="100dvh" justify="center" align="center">
+          <Loader color="blue" />
+        </Flex>
+      )}
     </MantineProvider>
   );
 }
