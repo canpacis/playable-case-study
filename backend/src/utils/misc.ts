@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Request } from "express";
 
 export function checkEnv() {
   const envSchema = z.object({
@@ -31,3 +32,12 @@ export type Paginated<T> = {
   hasNext: boolean;
   hasPrevious: boolean;
 };
+
+export type Context<T> = {
+  request: Request;
+  data: T;
+};
+
+export function createContext<T>(req: Request, data: T): Context<T> {
+  return { request: req, data: data };
+}

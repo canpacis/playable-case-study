@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
-import { formatZodError, type Paginated } from "@utils/misc";
+import { formatZodError, type Context, type Paginated } from "@utils/misc";
 import { Todo } from "@models/todo";
 import type { Document } from "mongoose";
 
@@ -18,8 +18,13 @@ const createTodoSchema = z.object({
 
 export type CreateTodoDTO = z.infer<typeof createTodoSchema>;
 
-export async function createTodo(todo: CreateTodoDTO): Promise<Document> {
-  const validation = createTodoSchema.safeParse(todo);
+export async function createTodo(
+  context: Context<CreateTodoDTO>
+): Promise<Document> {
+  const validation = createTodoSchema.safeParse({
+    ...context.data,
+    author: context.request.user.user_id,
+  });
 
   if (!validation.success) {
     throw new AppError(
@@ -38,14 +43,30 @@ export async function createTodo(todo: CreateTodoDTO): Promise<Document> {
   }
 }
 
+const paginationSchema = z.object({
+  page: z.number().min(1),
+  perPage: z.number().min(1),
+});
+
+export type PaginationDTO = z.infer<typeof paginationSchema>;
+
 export async function listTodos(
-  user: string,
-  page = 1,
-  perPage = 10
+  context: Context<PaginationDTO>
 ): Promise<Paginated<Document>> {
+  const validation = paginationSchema.safeParse(context.data);
+  if (!validation.success) {
+    throw new AppError(
+      StatusCodes.BAD_REQUEST,
+      formatZodError(validation.error)
+    );
+  }
+  const {
+    data: { page, perPage },
+  } = validation;
+
   try {
     const total = await Todo.countDocuments();
-    const todos = await Todo.find({ author: user })
+    const todos = await Todo.find({ author: context.request.user.user_id })
       .limit(perPage)
       .skip((page - 1) * perPage)
       .exec();
@@ -61,11 +82,12 @@ export async function listTodos(
   }
 }
 
-export async function getTodo(id: string, user: string): Promise<Document> {
+export async function getTodo(context: Context<string>): Promise<Document> {
+  const id = context.data;
   const todo = await Todo.findById(id).exec();
 
   // If the author is not the user return 404 as well
-  if (!todo || todo.author !== user) {
+  if (!todo || todo.author !== context.request.user.user_id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
@@ -80,12 +102,15 @@ const updateTodoSchema = z.object({
 
 export type UpdateTodoDTO = z.infer<typeof updateTodoSchema>;
 
+type UpdateContext = {
+  id: string;
+  todo: UpdateTodoDTO;
+};
+
 export async function updateTodo(
-  id: string,
-  todo: UpdateTodoDTO,
-  user: string
+  context: Context<UpdateContext>
 ): Promise<Document> {
-  const validation = updateTodoSchema.safeParse(todo);
+  const validation = updateTodoSchema.safeParse(context.data.todo);
 
   if (!validation.success) {
     throw new AppError(
@@ -95,14 +120,14 @@ export async function updateTodo(
   }
   const { data } = validation;
 
-  const record = await Todo.findById(id).exec();
+  const record = await Todo.findById(context.data.id).exec();
   // If the author is not the user return 404 as well
-  if (!record || record.author !== user) {
+  if (!record || record.author !== context.request.user.user_id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
   try {
-    await Todo.findByIdAndUpdate(id, {
+    await Todo.findByIdAndUpdate(context.data.id, {
       title: data.title,
       description: data.description,
       priority: data.priority,
@@ -114,11 +139,12 @@ export async function updateTodo(
   }
 }
 
-export async function deleteTodo(id: string, user: string): Promise<boolean> {
+export async function deleteTodo(context: Context<string>): Promise<boolean> {
+  const id = context.data;
   const todo = await Todo.findById(id).exec();
 
   // If the author is not the user return 404 as well
-  if (!todo || todo.author !== user) {
+  if (!todo || todo.author !== context.request.user.user_id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
