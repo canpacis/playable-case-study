@@ -7,22 +7,8 @@ import {
   listTodos,
   updateTodo,
 } from "@controllers/todo";
-import { AppError } from "@config/error";
-import { StatusCodes } from "http-status-codes";
-import { logger } from "@utils/logger";
+import { AppError, handleError } from "@config/error";
 import { createContext } from "@utils/misc";
-
-function handleError(error: unknown, res: Response) {
-  if (error instanceof AppError) {
-    logger.error(String(error), "status", error.status);
-    res.status(error.status).json({ message: error.message });
-  } else {
-    logger.error(String(error), "status", StatusCodes.INTERNAL_SERVER_ERROR);
-    res
-      .status(StatusCodes.INTERNAL_SERVER_ERROR)
-      .json({ message: String(error) });
-  }
-}
 
 export function initTodoRoutes(app: Application) {
   app.post("/todos", authMiddleware, async (req: Request, res: Response) => {

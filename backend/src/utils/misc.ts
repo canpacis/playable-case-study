@@ -4,6 +4,9 @@ import type { Request } from "express";
 export function checkEnv() {
   const envSchema = z.object({
     MONGO_URL: z.string(),
+    MINIO_ROOT_USER: z.string(),
+    MINIO_ROOT_PASSWORD: z.string(),
+    MINIO_DEFAULT_BUCKETS: z.string(),
   });
 
   try {

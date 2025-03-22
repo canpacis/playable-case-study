@@ -1,26 +1,27 @@
 version: "3.8"
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "5000:5000"
-    environment:
-      MONGO_URL: mongodb://root:password@mongo:27017/app
-      MONGO_CONFIG_BASICAUTH: false
-    depends_on:
-      - mongo
+  # backend:
+  #   build:
+  #     context: ./backend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     NODE_ENV=production
+  #     MONGO_URL: mongodb://root:password@mongo:27017
+  #     MONGO_CONFIG_BASICAUTH: false
+  #   depends_on:
+  #     - mongo
 
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:80"
-    depends_on:
-      - backend
+  # frontend:
+  #   build:
+  #     context: ./frontend
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "5173:80"
+  #   depends_on:
+  #     - backend
 
   mongo:
     image: mongo
@@ -31,21 +32,25 @@ services:
     ports:
       - "27017:27017"
     volumes:
-      - mongo-data:/data/db
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
 
   storage:
-    image: docker.io/bitnami/minio:lastest
+    image: docker.io/bitnami/minio:latest
     ports:
       - "9000:9000"
       - "9001:9001"
-    networks:
-      - minionetwork
+    # networks:
+    #   - minionetwork
     volumes:
-      - "minio_data:/data"
+      - minio_data:/data
     environment:
       MINIO_ROOT_USER: root
-      MINIO_ROOT_PASSWORD: pasword
+      MINIO_ROOT_PASSWORD: password
       MINIO_DEFAULT_BUCKETS: app
+      MINIO_SERVER_URL: http://localhost:24001
 
 volumes:
-  mongo-data:
+  mongo_data:
+  mongo_config:
+  minio_data:
