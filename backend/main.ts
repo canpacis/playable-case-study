@@ -4,6 +4,7 @@ import { checkEnv } from "@utils/misc";
 import { logger } from "@utils/logger";
 import { initDB } from "@config/db";
 import { initTodoRoutes } from "./src/routes/todo";
+import cors from "cors";
 
 const app = express();
 const port = 5000;
@@ -17,6 +18,7 @@ try {
 }
 
 app.use(express.json());
+app.use(cors());
 
 initTodoRoutes(app);
 
