@@ -6,6 +6,10 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { Flex, Title, Text, Badge, Menu, ActionIcon } from "@mantine/core";
+import { useMutation } from "@tanstack/react-query";
+import { mutate, method, endpoints, queryClient } from "@utils/backend";
+import { auth } from "@utils/auth";
+import { formatDate } from "@utils/misc";
 
 export type TodoPriority = "high" | "medium" | "low";
 
@@ -26,7 +30,7 @@ export type Todo = {
   priority: TodoPriority;
   // tags: Tag[];
   // attachments: Attachment[];
-  // created_at: Date;
+  created_at: Date;
 };
 
 const priorityLabel: Record<TodoPriority, string> = {
@@ -42,6 +46,17 @@ const priorityColor: Record<TodoPriority, string> = {
 };
 
 export function TodoCard({ todo }: { todo: Todo }) {
+  const user = auth.currentUser!;
+
+  const deleteMutation = useMutation({
+    mutationFn: () => mutate(endpoints.deleteTodo(todo.id), method.Delete),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [user.uid, "todo-list"] });
+    },
+  });
+
+  console.log(todo.created_at)
+
   return (
     <Flex className={classes.card} direction="column">
       <img src="https://picsum.photos/300/200" alt="todo image" />
@@ -67,7 +82,10 @@ export function TodoCard({ todo }: { todo: Todo }) {
 
             <Menu.Dropdown>
               <Menu.Item leftSection={<IconPencil size={14} />}>Edit</Menu.Item>
-              <Menu.Item leftSection={<IconTrash size={14} />}>
+              <Menu.Item
+                onClick={() => deleteMutation.mutate()}
+                leftSection={<IconTrash size={14} />}
+              >
                 Delete
               </Menu.Item>
             </Menu.Dropdown>
@@ -106,7 +124,7 @@ export function TodoCard({ todo }: { todo: Todo }) {
         )} */}
       </Flex>
       <Flex mt="auto" px="md" py="sm" className={classes.foot}>
-        <Text size="xs">Created just now</Text>
+        <Text size="xs">{formatDate(new Date(todo.created_at))}</Text>
       </Flex>
     </Flex>
   );

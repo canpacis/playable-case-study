@@ -6,9 +6,8 @@ import { TodoPage } from "@components/TodoPage";
 import { LoginPage } from "@components/LoginPage";
 import { auth } from "@utils/auth";
 import { useEffect, useState } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient();
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "@utils/backend";
 
 export default function App() {
   const [ready, setReady] = useState(false);
