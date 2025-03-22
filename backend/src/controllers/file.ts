@@ -52,14 +52,17 @@ export async function uploadFile(
 export async function getImageFromDoc(
   context: Context<InferRawDocType<typeof imageSchemaDef> & { _id: ObjectId }>
 ): Promise<ImageRecord> {
-  const base = context.request.headers.host
+  // This may not be the best way to do this
+  const scheme =
+    process.env.NODE_ENV === "development" ? "http://" : "https://";
+  const base = context.request.headers.host;
 
   return {
-    thumbnail: `${base}/asset/${context.data.thumbnail}`,
-    medium: `${base}/asset/${context.data.medium}`,
-    original: `${base}/asset/${context.data.original}`,
-    created_at: new Date(context.data.created_at!)
-  }
+    thumbnail: `${scheme}${base}/asset/${context.data.thumbnail}`,
+    medium: `${scheme}${base}/asset/${context.data.medium}`,
+    original: `${scheme}${base}/asset/${context.data.original}`,
+    created_at: new Date(context.data.created_at!),
+  };
 }
 
 export async function uploadImage(context: Context<Buffer>): Promise<Document> {
