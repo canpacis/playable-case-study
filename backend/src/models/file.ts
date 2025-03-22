@@ -9,12 +9,21 @@ const fileSchema = new Schema({
 
 export const FileUpload = model("File", fileSchema);
 
-const imageSchema = new Schema({
+export const imageSchemaDef = {
   thumbnail: String,
   medium: String,
   original: String,
   owner: String,
   created_at: Date,
-});
+} as const;
+
+const imageSchema = new Schema(imageSchemaDef);
 
 export const ImageUpload = model("Image", imageSchema);
+
+export type ImageRecord = {
+  thumbnail: string;
+  medium: string;
+  original: string;
+  created_at: Date;
+};

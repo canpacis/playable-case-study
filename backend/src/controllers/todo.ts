@@ -1,12 +1,44 @@
 import { z } from "zod";
 import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
-import { formatZodError, type Context, type Paginated } from "@utils/misc";
-import { Tag, Todo } from "@models/todo";
-import type { Document } from "mongoose";
-import { FileUpload } from "../models/file";
+import {
+  copyContext,
+  formatZodError,
+  type Context,
+  type Paginated,
+} from "@utils/misc";
+import {
+  schemaDef,
+  Tag,
+  Todo,
+  type TodoDTO,
+  type TodoPriority,
+} from "@models/todo";
+import { FileUpload, ImageUpload } from "@models/file";
+import type { InferRawDocType, ObjectId } from "mongoose";
+import { getImageFromDoc } from "./file";
 
-export type TodoPriority = "high" | "medium" | "low";
+export async function getTodoFromDoc(
+  context: Context<InferRawDocType<typeof schemaDef> & { _id: ObjectId }>
+): Promise<TodoDTO> {
+  let image = null;
+  if (context.data.image) {
+    const doc = await ImageUpload.findById(context.data.image);
+    image = await getImageFromDoc(copyContext(context, doc as unknown as any));
+  }
+  const doc = context.data;
+
+  return {
+    id: doc._id.toString(),
+    title: doc.title!,
+    description: doc.description!,
+    image: image,
+    priority: doc.priority as TodoPriority,
+    tags: doc.tags!.map((id) => id.toString()),
+    attachments: doc.attachments!.map((id) => id.toString()),
+    created_at: new Date(doc.created_at!),
+  };
+}
 
 const createTodoSchema = z.object({
   title: z.string().min(2).max(40),
@@ -16,6 +48,7 @@ const createTodoSchema = z.object({
   author: z.string().length(28),
   priority: z.enum(["high", "medium", "low"]),
   // length of a mongo object id
+  image: z.string().length(24).optional(),
   tags: z.array(z.string().length(24)),
   attachments: z.array(z.string().length(24)),
 });
@@ -24,7 +57,7 @@ export type CreateTodoDTO = z.infer<typeof createTodoSchema>;
 
 export async function createTodo(
   context: Context<CreateTodoDTO>
-): Promise<Document> {
+): Promise<TodoDTO> {
   const validation = createTodoSchema.safeParse({
     ...context.data,
     author: context.request.user.user_id,
@@ -50,10 +83,17 @@ export async function createTodo(
     throw new AppError(StatusCodes.BAD_REQUEST, "invalid attachment relation");
   }
 
+  if (data.image) {
+    const image = await ImageUpload.findById(data.image);
+    if (!image) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "invalid image relation");
+    }
+  }
+
   try {
-    const doc = new Todo(data);
+    const doc = new Todo({ ...data, created_at: new Date() });
     await doc.save();
-    return doc;
+    return getTodoFromDoc(copyContext(context, doc as unknown as any));
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
@@ -68,7 +108,7 @@ export type PaginationDTO = z.infer<typeof paginationSchema>;
 
 export async function listTodos(
   context: Context<PaginationDTO>
-): Promise<Paginated<Document>> {
+): Promise<Paginated<TodoDTO>> {
   const validation = paginationSchema.safeParse(context.data);
   if (!validation.success) {
     throw new AppError(
@@ -88,7 +128,9 @@ export async function listTodos(
       .exec();
 
     return {
-      items: todos,
+      items: await Promise.all(
+        todos.map((todo) => getTodoFromDoc(copyContext(context, todo as unknown as any)))
+      ),
       total: total,
       hasNext: page * perPage < total,
       hasPrevious: page > 1,
@@ -98,7 +140,7 @@ export async function listTodos(
   }
 }
 
-export async function getTodo(context: Context<string>): Promise<Document> {
+export async function getTodo(context: Context<string>): Promise<TodoDTO> {
   const id = context.data;
   const todo = await Todo.findById(id).exec();
 
@@ -107,7 +149,7 @@ export async function getTodo(context: Context<string>): Promise<Document> {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
-  return todo;
+  return await getTodoFromDoc(copyContext(context, todo as unknown as any));
 }
 
 const updateTodoSchema = z.object({
@@ -125,7 +167,7 @@ type UpdateContext = {
 
 export async function updateTodo(
   context: Context<UpdateContext>
-): Promise<Document> {
+): Promise<TodoDTO> {
   const validation = updateTodoSchema.safeParse(context.data.todo);
 
   if (!validation.success) {
@@ -136,9 +178,9 @@ export async function updateTodo(
   }
   const { data } = validation;
 
-  const record = await Todo.findById(context.data.id).exec();
+  const doc = await Todo.findById(context.data.id).exec();
   // If the author is not the user return 404 as well
-  if (!record || record.author !== context.request.user.user_id) {
+  if (!doc || doc.author !== context.request.user.user_id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
@@ -149,7 +191,8 @@ export async function updateTodo(
       priority: data.priority,
     });
 
-    return Object.assign(record, data);
+    // TODO: update this this is not right
+    return Object.assign(await getTodoFromDoc(copyContext(context, doc as unknown as any)), data);
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }

@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { Request } from "express";
+import type { Request, Response } from "express";
+import { Readable } from "stream";
 
 export function checkEnv() {
   const envSchema = z.object({
@@ -41,6 +42,27 @@ export type Context<T> = {
   data: T;
 };
 
-export function createContext<T>(req: Request, data: T): Context<T> {
+export function createContext<T>(
+  req: Request,
+  data: T
+): Context<T> {
   return { request: req, data: data };
+}
+
+export function copyContext<T>(context: Context<unknown>, data: T): Context<T> {
+  return { request: context.request, data: data };
+}
+
+export function streamToBuffer(stream: Readable): Promise<Buffer> {
+  return new Promise((resolve) => {
+    const buff: number[] = [];
+
+    stream.on("data", async (chunk) => {
+      buff.push(chunk);
+    });
+
+    stream.on("end", function () {
+      resolve(Buffer.from(buff));
+    });
+  });
 }

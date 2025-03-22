@@ -1,8 +1,14 @@
 import { v4 } from "uuid";
-import type { Context } from "@utils/misc";
+import { type Context } from "@utils/misc";
 import { getAppBucket } from "@config/storage";
-import { FileUpload, ImageUpload } from "@models/file";
-import type { Document } from "mongoose";
+import {
+  FileUpload,
+  imageSchemaDef,
+  ImageUpload,
+  type ImageRecord,
+} from "@models/file";
+import type { Document, InferRawDocType, ObjectId } from "mongoose";
+import { Readable } from "stream";
 import { db, storage } from "@/main";
 import sharp from "sharp";
 import { AppError } from "../config/error";
@@ -34,21 +40,38 @@ export async function uploadFile(
     // just acknowledge it here and not implement it.
   }).save();
 
-  await storage.putObject(getAppBucket(), id, context.data.file);
+  await storage.putObject(getAppBucket(), id, context.data.file, undefined, {
+    mimetype: context.data.mimetype,
+  });
 
   await session.commitTransaction();
   await session.endSession();
   return document;
 }
 
+export async function getImageFromDoc(
+  context: Context<InferRawDocType<typeof imageSchemaDef> & { _id: ObjectId }>
+): Promise<ImageRecord> {
+  const base = context.request.headers.host
+
+  return {
+    thumbnail: `${base}/asset/${context.data.thumbnail}`,
+    medium: `${base}/asset/${context.data.medium}`,
+    original: `${base}/asset/${context.data.original}`,
+    created_at: new Date(context.data.created_at!)
+  }
+}
+
 export async function uploadImage(context: Context<Buffer>): Promise<Document> {
   let thumbnail: Buffer<ArrayBufferLike>;
   let medium: Buffer<ArrayBufferLike>;
+  let original: Buffer<ArrayBufferLike>;
 
   try {
-    [thumbnail, medium] = await Promise.all([
+    [thumbnail, medium, original] = await Promise.all([
       sharp(context.data).resize(200).webp().toBuffer(),
       sharp(context.data).resize(600).webp().toBuffer(),
+      sharp(context.data).webp().toBuffer(),
     ]);
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
@@ -61,9 +84,15 @@ export async function uploadImage(context: Context<Buffer>): Promise<Document> {
   try {
     // these actions should be transactions as well but I don't have time
     await Promise.all([
-      storage.putObject(getAppBucket(), thumbnailId, thumbnail),
-      storage.putObject(getAppBucket(), mediumId, medium),
-      storage.putObject(getAppBucket(), originalId, context.data),
+      storage.putObject(getAppBucket(), thumbnailId, thumbnail, undefined, {
+        mimetype: "image/webp",
+      }),
+      storage.putObject(getAppBucket(), mediumId, medium, undefined, {
+        mimetype: "image/webp",
+      }),
+      storage.putObject(getAppBucket(), originalId, original, undefined, {
+        mimetype: "image/webp",
+      }),
     ]);
 
     const document = await new ImageUpload({
@@ -78,4 +107,11 @@ export async function uploadImage(context: Context<Buffer>): Promise<Document> {
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
+}
+
+export async function downloadAsset(
+  context: Context<string>
+): Promise<Readable> {
+  const readable = await storage.getObject(getAppBucket(), context.data);
+  return readable;
 }

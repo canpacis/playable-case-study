@@ -2,7 +2,7 @@ import multer from "multer";
 import type { Application, Request, Response } from "express";
 import { authMiddleware } from "@middleware/auth";
 import { AppError, handleError } from "@config/error";
-import { uploadFile, uploadImage } from "@controllers/file";
+import { downloadAsset, uploadFile, uploadImage } from "@controllers/file";
 import { createContext } from "@utils/misc";
 import { StatusCodes } from "http-status-codes";
 
@@ -45,7 +45,9 @@ export function initFileRoutes(app: Application) {
           throw new AppError(StatusCodes.BAD_REQUEST, "no file");
         }
 
-        const file = await uploadImage(createContext(req, req.file.buffer));
+        const file = await uploadImage(
+          createContext(req, req.file.buffer)
+        );
         res.json(file);
         return;
       } catch (error) {
@@ -53,4 +55,17 @@ export function initFileRoutes(app: Application) {
       }
     }
   );
+
+  app.get("/asset/:id", async (req: Request, res: Response) => {
+    try {
+      const stream = await downloadAsset(
+        createContext(req, req.params.id)
+      );
+
+      stream.pipe(res);
+      return;
+    } catch (error) {
+      return handleError(error, res);
+    }
+  });
 }
