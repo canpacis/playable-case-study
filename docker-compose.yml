@@ -33,5 +33,19 @@ services:
     volumes:
       - mongo-data:/data/db
 
+  storage:
+    image: docker.io/bitnami/minio:lastest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    networks:
+      - minionetwork
+    volumes:
+      - "minio_data:/data"
+    environment:
+      MINIO_ROOT_USER: root
+      MINIO_ROOT_PASSWORD: pasword
+      MINIO_DEFAULT_BUCKETS: app
+
 volumes:
   mongo-data:
