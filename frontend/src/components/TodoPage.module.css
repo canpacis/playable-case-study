@@ -1,0 +1,23 @@
+.card {
+  border: 1px solid var(--mantine-color-gray-4);
+  border-radius: var(--mantine-radius-md);
+  min-width: 320px;
+
+  p {
+    color: var(--mantine-color-gray-6);
+    font-size: var(--mantine-font-size-sm);
+    font-weight: 500;
+  }
+}
+
+.badge {
+  border-radius: var(--mantine-radius-sm);
+  text-transform: none;
+}
+
+.foot {
+  border-bottom-left-radius: var(--mantine-radius-md);
+  border-bottom-right-radius: var(--mantine-radius-md);
+  background-color: var(--mantine-color-gray-1);
+  border-top: 1px solid var(--mantine-color-gray-4)
+}
