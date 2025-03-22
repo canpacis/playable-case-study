@@ -3,8 +3,7 @@ import { auth, provider } from "@utils/auth";
 
 export function LoginPage() {
   const handleLogin = async () => {
-    const credentials = await signInWithPopup(auth, provider);
-    console.log(credentials);
+    await signInWithPopup(auth, provider);
   };
 
   return (

@@ -1,12 +1,16 @@
 .card {
   border: 1px solid var(--mantine-color-gray-4);
   border-radius: var(--mantine-radius-md);
-  min-width: 320px;
 
   p {
     color: var(--mantine-color-gray-6);
-    font-size: var(--mantine-font-size-sm);
     font-weight: 500;
+  }
+
+  img {
+    border-top-left-radius: var(--mantine-radius-md);
+    border-top-right-radius: var(--mantine-radius-md);
+    min-height: 190px;
   }
 }
 
