@@ -1,5 +1,7 @@
 declare module Express {
   interface Request {
-      user: DecodedIdToken;
+    user: {
+      id: string;
+    };
   }
 }
