@@ -13,6 +13,8 @@ export const schemaDef = {
 } as const;
 const schema = new Schema(schemaDef);
 
+schema.index({ title: "text", description: "text" });
+
 export const Todo = model("Todo", schema);
 
 export type TodoPriority = "high" | "medium" | "low";

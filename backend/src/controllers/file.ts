@@ -3,24 +3,22 @@ import { copyContext, type Context } from "@utils/misc";
 import { getAppBucket } from "@config/storage";
 import {
   FileUpload,
-  imageSchemaDef,
   ImageUpload,
   type FileDTO,
   type ImageDTO,
 } from "@models/file";
-import type { InferRawDocType, ObjectId } from "mongoose";
 import { Readable } from "stream";
 import { db, storage } from "@/main";
 import sharp from "sharp";
 import { AppError } from "../config/error";
 import { StatusCodes } from "http-status-codes";
 
-export async function getFileFromDoc(context: Context<any>): Promise<FileDTO> {
+export async function getFileFromDoc(document: any): Promise<FileDTO> {
   return {
-    id: String(context.data._id),
-    originalName: context.data.originalName,
-    url: `${process.env.APP_URL}/asset/${context.data.location}`,
-    createdAt: new Date(context.data.createdAt!),
+    id: String(document._id),
+    originalName: document.originalName,
+    url: `${process.env.APP_URL}/asset/${document.location}`,
+    createdAt: new Date(document.createdAt!),
   };
 }
 
@@ -59,15 +57,13 @@ export async function uploadFile(
   return getFileFromDoc(copyContext(context, document));
 }
 
-export async function getImageFromDoc(
-  context: Context<InferRawDocType<typeof imageSchemaDef> & { _id: ObjectId }>
-): Promise<ImageDTO> {
+export async function getImageFromDoc(document: any): Promise<ImageDTO> {
   return {
-    id: String(context.data._id),
-    thumbnail: `${process.env.APP_URL}/asset/${context.data.thumbnail}`,
-    medium: `${process.env.APP_URL}/asset/${context.data.medium}`,
-    original: `${process.env.APP_URL}/asset/${context.data.original}`,
-    createdAt: new Date(context.data.createdAt!),
+    id: String(document._id),
+    thumbnail: `${process.env.APP_URL}/asset/${document.thumbnail}`,
+    medium: `${process.env.APP_URL}/asset/${document.medium}`,
+    original: `${process.env.APP_URL}/asset/${document.original}`,
+    createdAt: new Date(document.createdAt!),
   };
 }
 

@@ -2,55 +2,49 @@ import { z } from "zod";
 import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
 import {
-  copyContext,
   formatZodError,
   type Context,
   type Paginated,
 } from "@utils/misc";
 import {
-  schemaDef,
   Tag,
   Todo,
   type TodoDTO,
   type TodoPriority,
 } from "@models/todo";
 import { FileUpload, ImageUpload } from "@models/file";
-import type { Document, InferRawDocType, ObjectId } from "mongoose";
+import type { Document } from "mongoose";
 import { getFileFromDoc, getImageFromDoc } from "@controllers/file";
 import { getTagFromDoc } from "@controllers/tag";
 
-export async function getTodoFromDoc(
-  context: Context<InferRawDocType<typeof schemaDef> & { _id: ObjectId }>
-): Promise<TodoDTO> {
+export async function getTodoFromDoc(document: any): Promise<TodoDTO> {
   let image = null;
-  if (context.data.image) {
-    const doc = await ImageUpload.findById(context.data.image);
-    image = await getImageFromDoc(copyContext(context, doc as unknown as any));
+  if (document.image) {
+    const doc = await ImageUpload.findById(document.image);
+    image = await getImageFromDoc(doc);
   }
 
   let attachments = [];
-  for await (const id of context.data.attachments!) {
+  for await (const id of document.attachments!) {
     const doc = await FileUpload.findById(id.toString());
-    attachments.push(await getFileFromDoc(copyContext(context, doc)));
+    attachments.push(await getFileFromDoc(doc));
   }
 
   let tags = [];
-  for await (const id of context.data.tags!) {
+  for await (const id of document.tags!) {
     const doc = (await Tag.findById(id.toString())) as Document;
     tags.push(getTagFromDoc(doc));
   }
 
-  const doc = context.data;
-
   return {
-    id: doc._id.toString(),
-    title: doc.title!,
-    description: doc.description!,
+    id: document._id.toString(),
+    title: document.title!,
+    description: document.description!,
     image: image,
-    priority: doc.priority as TodoPriority,
+    priority: document.priority as TodoPriority,
     tags: tags,
     attachments: attachments,
-    createdAt: new Date(doc.createdAt!),
+    createdAt: new Date(document.createdAt!),
   };
 }
 
@@ -107,7 +101,7 @@ export async function createTodo(
   try {
     const doc = new Todo({ ...data, createdAt: new Date() });
     await doc.save();
-    return getTodoFromDoc(copyContext(context, doc as unknown as any));
+    return getTodoFromDoc(doc);
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
@@ -142,11 +136,7 @@ export async function listTodos(
       .exec();
 
     return {
-      items: await Promise.all(
-        todos.map((todo) =>
-          getTodoFromDoc(copyContext(context, todo as unknown as any))
-        )
-      ),
+      items: await Promise.all(todos.map((todo) => getTodoFromDoc(todo))),
       total: total,
       hasNext: page * perPage < total,
       hasPrevious: page > 1,
@@ -165,7 +155,7 @@ export async function getTodo(context: Context<string>): Promise<TodoDTO> {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
-  return await getTodoFromDoc(copyContext(context, todo as unknown as any));
+  return await getTodoFromDoc(todo);
 }
 
 const updateTodoSchema = z.object({
@@ -232,9 +222,7 @@ export async function updateTodo(
       attachments: data.attachments,
     });
 
-    return await getTodoFromDoc(
-      copyContext(context, document as unknown as any)
-    );
+    return await getTodoFromDoc(document);
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
@@ -255,4 +243,26 @@ export async function deleteTodo(context: Context<string>): Promise<boolean> {
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
+}
+
+export async function searchTodos(
+  context: Context<string>
+): Promise<TodoDTO[]> {
+  const docs = await Todo.find({
+    author: context.request.user.id,
+    $text: { $search: context.data },
+  }).exec();
+
+  return await Promise.all(docs.map(getTodoFromDoc));
+}
+
+export async function filterTodos(
+  context: Context<string[]>
+): Promise<TodoDTO[]> {
+  const docs = await Todo.find({
+    author: context.request.user.id,
+    tags: { $in: context.data },
+  }).exec();
+
+  return await Promise.all(docs.map(getTodoFromDoc));
 }

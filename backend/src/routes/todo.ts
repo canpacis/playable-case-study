@@ -3,8 +3,10 @@ import { authMiddleware } from "@middleware/auth";
 import {
   createTodo,
   deleteTodo,
+  filterTodos,
   getTodo,
   listTodos,
+  searchTodos,
   updateTodo,
 } from "@controllers/todo";
 import { handleError } from "@config/error";
@@ -35,6 +37,37 @@ export function initTodoRoutes(app: Application) {
       return handleError(error, res);
     }
   });
+
+  app.get(
+    "/todos/search",
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        const todos = await searchTodos(
+          createContext(req, (req.query.q ?? "") as string)
+        );
+        res.json(todos);
+        return;
+      } catch (error) {
+        return handleError(error, res);
+      }
+    }
+  );
+
+  app.get(
+    "/todos/filter",
+    authMiddleware,
+    async (req: Request, res: Response) => {
+      try {
+        const ids = ((req.query.t ?? "") as string).split(",");
+        const todos = await filterTodos(createContext(req, ids));
+        res.json(todos);
+        return;
+      } catch (error) {
+        return handleError(error, res);
+      }
+    }
+  );
 
   app.get("/todos/:id", authMiddleware, async (req: Request, res: Response) => {
     try {
