@@ -8,6 +8,7 @@ export function checkEnv() {
     MINIO_ROOT_USER: z.string(),
     MINIO_ROOT_PASSWORD: z.string(),
     MINIO_DEFAULT_BUCKETS: z.string(),
+    OPENAI_API_KEY: z.string(),
   });
 
   try {
@@ -42,10 +43,7 @@ export type Context<T> = {
   data: T;
 };
 
-export function createContext<T>(
-  req: Request,
-  data: T
-): Context<T> {
+export function createContext<T>(req: Request, data: T): Context<T> {
   return { request: req, data: data };
 }
 

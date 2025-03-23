@@ -11,6 +11,9 @@ import { initTodoRoutes } from "@routes/todo";
 import { initFileRoutes } from "@routes/file";
 import type mongoose from "mongoose";
 import { initStorage } from "@config/storage";
+import { initAiRoutes } from "./src/routes/ai";
+import type OpenAI from "openai";
+import { initAiClient } from "./src/config/ai";
 
 if (process.env.NODE_ENV === "development") {
   dotenv.config({ path: ".env.local" });
@@ -21,11 +24,13 @@ const port = 5000;
 
 export let db: typeof mongoose;
 export let storage: Minio.Client;
+export let ai: OpenAI;
 
 try {
   checkEnv();
   storage = initStorage();
   db = await initDB();
+  ai = initAiClient();
 } catch (error) {
   logger.error(error);
   process.exit(1);
@@ -43,5 +48,6 @@ app.use(
 
 initTodoRoutes(app);
 initFileRoutes(app);
+initAiRoutes(app);
 
 app.listen(port, () => console.log(`App is running on port ${port}`));
