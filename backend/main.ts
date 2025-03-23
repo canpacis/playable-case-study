@@ -2,18 +2,18 @@ import "dotenv/config";
 import "@config/storage";
 import * as Minio from "minio";
 import cors from "cors";
-import dotenv from "dotenv";
 import express from "express";
-import { checkEnv } from "@utils/misc";
+import type mongoose from "mongoose";
+import type OpenAI from "openai";
 import { logger } from "@utils/logger";
 import { initDB } from "@config/db";
+import { initStorage } from "@config/storage";
+import { initAiClient } from "@config/ai";
+import { checkEnv } from "@utils/misc";
+import { initAiRoutes } from "@routes/ai";
+import { initTagRoutes } from "@routes/tag";
 import { initTodoRoutes } from "@routes/todo";
 import { initFileRoutes } from "@routes/file";
-import type mongoose from "mongoose";
-import { initStorage } from "@config/storage";
-import { initAiRoutes } from "./src/routes/ai";
-import type OpenAI from "openai";
-import { initAiClient } from "./src/config/ai";
 
 const app = express();
 const port = 5000;
@@ -44,6 +44,7 @@ app.use(
 
 initTodoRoutes(app);
 initFileRoutes(app);
+initTagRoutes(app);
 initAiRoutes(app);
 
 app.listen(port, () => console.log(`App is running on port ${port}`));

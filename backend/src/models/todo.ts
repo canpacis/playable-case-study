@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import type { FileDTO, ImageDTO } from "./file";
+import type { FileDTO, ImageDTO } from "@models/file";
 
 export const schemaDef = {
   title: String,
@@ -15,13 +15,6 @@ const schema = new Schema(schemaDef);
 
 export const Todo = model("Todo", schema);
 
-const tagSchema = new Schema({
-  title: String,
-  author: String,
-});
-
-export const Tag = model("Tag", tagSchema);
-
 export type TodoPriority = "high" | "medium" | "low";
 
 export type TodoDTO = {
@@ -32,5 +25,19 @@ export type TodoDTO = {
   priority: TodoPriority;
   tags: string[];
   attachments: FileDTO[];
+  createdAt: Date;
+};
+
+const tagSchema = new Schema({
+  title: String,
+  author: String,
+  createdAt: Date,
+});
+
+export const Tag = model("Tag", tagSchema);
+
+export type TagDTO = {
+  id: string;
+  title: string;
   createdAt: Date;
 };
