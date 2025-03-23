@@ -25,7 +25,7 @@ export type FileUpload = {
   createdAt: Date;
 };
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
 export const endpoints = {
   listTodos: "/todos",

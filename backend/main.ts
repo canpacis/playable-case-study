@@ -40,9 +40,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    // origin: "*",
-    // methods: ["GET", "POST", "PATCH", "DELETE"],
-    // allowedHeaders: ["Content-Type", "Authorization"],
+    origin: "*",
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

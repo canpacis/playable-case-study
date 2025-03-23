@@ -8,18 +8,26 @@ services:
   #   ports:
   #     - "5000:5000"
   #   environment:
-  #     NODE_ENV=production
+  #     NODE_ENV: production
+  #     APP_URL: http://localhost:5000
   #     MONGO_URL: mongodb://root:password@mongo:27017
+  #     MINIO_ROOT_USER: root
+  #     MINIO_ROOT_PASSWORD: password
+  #     MINIO_DEFAULT_BUCKETS: app
   #     MONGO_CONFIG_BASICAUTH: false
+  #     OPENAI_API_KEY: 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
   #   depends_on:
   #     - mongo
+  #     - storage
 
   # frontend:
   #   build:
   #     context: ./frontend
   #     dockerfile: Dockerfile
   #   ports:
-  #     - "5173:80"
+  #     - "80:80"
+  #   environment:
+  #     VITE_BACKEND_URL: http://localhost:5000
   #   depends_on:
   #     - backend
 
@@ -40,8 +48,6 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
-    # networks:
-    #   - minionetwork
     volumes:
       - minio_data:/data
     environment:

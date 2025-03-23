@@ -16,15 +16,10 @@ import { AppError } from "../config/error";
 import { StatusCodes } from "http-status-codes";
 
 export async function getFileFromDoc(context: Context<any>): Promise<FileDTO> {
-  // This may not be the best way to do this
-  const scheme =
-    process.env.NODE_ENV === "development" ? "http://" : "https://";
-  const base = context.request.headers.host;
-
   return {
     id: String(context.data._id),
     originalName: context.data.originalName,
-    url: `${scheme}${base}/asset/${context.data.location}`,
+    url: `${process.env.APP_URL}/asset/${context.data.location}`,
     createdAt: new Date(context.data.createdAt!),
   };
 }
@@ -67,16 +62,11 @@ export async function uploadFile(
 export async function getImageFromDoc(
   context: Context<InferRawDocType<typeof imageSchemaDef> & { _id: ObjectId }>
 ): Promise<ImageDTO> {
-  // This may not be the best way to do this
-  const scheme =
-    process.env.NODE_ENV === "development" ? "http://" : "https://";
-  const base = context.request.headers.host;
-
   return {
     id: String(context.data._id),
-    thumbnail: `${scheme}${base}/asset/${context.data.thumbnail}`,
-    medium: `${scheme}${base}/asset/${context.data.medium}`,
-    original: `${scheme}${base}/asset/${context.data.original}`,
+    thumbnail: `${process.env.APP_URL}/asset/${context.data.thumbnail}`,
+    medium: `${process.env.APP_URL}/asset/${context.data.medium}`,
+    original: `${process.env.APP_URL}/asset/${context.data.original}`,
     createdAt: new Date(context.data.createdAt!),
   };
 }
