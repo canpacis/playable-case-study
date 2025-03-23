@@ -1,18 +1,33 @@
 import { v4 } from "uuid";
-import { type Context } from "@utils/misc";
+import { copyContext, type Context } from "@utils/misc";
 import { getAppBucket } from "@config/storage";
 import {
   FileUpload,
   imageSchemaDef,
   ImageUpload,
-  type ImageRecord,
+  type FileDTO,
+  type ImageDTO,
 } from "@models/file";
-import type { Document, InferRawDocType, ObjectId } from "mongoose";
+import type { InferRawDocType, ObjectId } from "mongoose";
 import { Readable } from "stream";
 import { db, storage } from "@/main";
 import sharp from "sharp";
 import { AppError } from "../config/error";
 import { StatusCodes } from "http-status-codes";
+
+export async function getFileFromDoc(context: Context<any>): Promise<FileDTO> {
+  // This may not be the best way to do this
+  const scheme =
+    process.env.NODE_ENV === "development" ? "http://" : "https://";
+  const base = context.request.headers.host;
+
+  return {
+    id: String(context.data._id),
+    originalName: context.data.originalName,
+    url: `${scheme}${base}/asset/${context.data.location}`,
+    createdAt: new Date(context.data.createdAt!),
+  };
+}
 
 type UploadFileContext = {
   name: string;
@@ -22,7 +37,7 @@ type UploadFileContext = {
 
 export async function uploadFile(
   context: Context<UploadFileContext>
-): Promise<Document> {
+): Promise<FileDTO> {
   const id = v4();
 
   const session = await db.startSession();
@@ -30,9 +45,9 @@ export async function uploadFile(
 
   const document = await new FileUpload({
     location: id,
-    original_name: context.data.name,
-    owner: context.request.user.user_id,
-    created_at: new Date(),
+    originalName: context.data.name,
+    owner: context.request.user.id,
+    createdAt: new Date(),
     // normally I should pass the session to include this in the transaction.
     // After this point, any failure such as failing to upload the file will
     // make this record irrelevant so this should be in an uncommitable transaction.
@@ -46,26 +61,27 @@ export async function uploadFile(
 
   await session.commitTransaction();
   await session.endSession();
-  return document;
+  return getFileFromDoc(copyContext(context, document));
 }
 
 export async function getImageFromDoc(
   context: Context<InferRawDocType<typeof imageSchemaDef> & { _id: ObjectId }>
-): Promise<ImageRecord> {
+): Promise<ImageDTO> {
   // This may not be the best way to do this
   const scheme =
     process.env.NODE_ENV === "development" ? "http://" : "https://";
   const base = context.request.headers.host;
 
   return {
+    id: String(context.data._id),
     thumbnail: `${scheme}${base}/asset/${context.data.thumbnail}`,
     medium: `${scheme}${base}/asset/${context.data.medium}`,
     original: `${scheme}${base}/asset/${context.data.original}`,
-    created_at: new Date(context.data.created_at!),
+    createdAt: new Date(context.data.createdAt!),
   };
 }
 
-export async function uploadImage(context: Context<Buffer>): Promise<Document> {
+export async function uploadImage(context: Context<Buffer>): Promise<ImageDTO> {
   let thumbnail: Buffer<ArrayBufferLike>;
   let medium: Buffer<ArrayBufferLike>;
   let original: Buffer<ArrayBufferLike>;
@@ -102,11 +118,13 @@ export async function uploadImage(context: Context<Buffer>): Promise<Document> {
       thumbnail: thumbnailId,
       medium: mediumId,
       original: originalId,
-      owner: context.request.user.user_id,
-      created_at: new Date(),
+      owner: context.request.user.id,
+      createdAt: new Date(),
     }).save();
 
-    return document;
+    return await getImageFromDoc(
+      copyContext(context, document as unknown as any)
+    );
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }

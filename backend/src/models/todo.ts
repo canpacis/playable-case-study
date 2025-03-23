@@ -1,4 +1,5 @@
 import { Schema, model } from "mongoose";
+import type { FileDTO, ImageDTO } from "./file";
 
 export const schemaDef = {
   title: String,
@@ -8,7 +9,7 @@ export const schemaDef = {
   image: { type: Schema.Types.ObjectId, ref: "Image" },
   tags: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
   attachments: [{ type: Schema.Types.ObjectId, ref: "File" }],
-  created_at: Date,
+  createdAt: Date,
 } as const;
 const schema = new Schema(schemaDef);
 
@@ -27,9 +28,9 @@ export type TodoDTO = {
   id: string;
   title: string;
   description: string;
-  image: any | null;
+  image: ImageDTO | null;
   priority: TodoPriority;
   tags: string[];
-  attachments: string[];
-  created_at: Date;
+  attachments: FileDTO[];
+  createdAt: Date;
 };
