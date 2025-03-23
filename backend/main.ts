@@ -15,10 +15,6 @@ import { initAiRoutes } from "./src/routes/ai";
 import type OpenAI from "openai";
 import { initAiClient } from "./src/config/ai";
 
-if (process.env.NODE_ENV === "development") {
-  dotenv.config({ path: ".env.local" });
-}
-
 const app = express();
 const port = 5000;
 

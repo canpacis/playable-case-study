@@ -11,4 +11,6 @@ build
 .prettier*
 .editorconfig
 .DS_Store
+.env
+.env.production
 logs

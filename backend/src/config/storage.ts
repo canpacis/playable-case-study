@@ -2,7 +2,7 @@ import * as Minio from "minio";
 
 export function initStorage() {
   return new Minio.Client({
-    endPoint: "localhost",
+    endPoint: process.env.MINIO_ROOT_ENDPOINT!,
     port: 9000,
     useSSL: false,
     accessKey: process.env.MINIO_ROOT_USER,

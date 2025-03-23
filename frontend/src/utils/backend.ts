@@ -25,7 +25,7 @@ export type FileUpload = {
   createdAt: Date;
 };
 
-const BASE_URL = import.meta.env.VITE_BACKEND_URL;
+const BASE_URL = "http://localhost:5000";
 
 export const endpoints = {
   listTodos: "/todos",
@@ -47,7 +47,6 @@ export async function query<T>(
   if (!user) {
     throw new Error("failed to query without a logged in user");
   }
-
   const url = new URL(`${BASE_URL}${endpoint}`);
 
   for (const key in params) {
