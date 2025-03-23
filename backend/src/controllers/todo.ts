@@ -15,8 +15,9 @@ import {
   type TodoPriority,
 } from "@models/todo";
 import { FileUpload, ImageUpload } from "@models/file";
-import type { InferRawDocType, ObjectId } from "mongoose";
-import { getFileFromDoc, getImageFromDoc } from "./file";
+import type { Document, InferRawDocType, ObjectId } from "mongoose";
+import { getFileFromDoc, getImageFromDoc } from "@controllers/file";
+import { getTagFromDoc } from "@controllers/tag";
 
 export async function getTodoFromDoc(
   context: Context<InferRawDocType<typeof schemaDef> & { _id: ObjectId }>
@@ -33,6 +34,12 @@ export async function getTodoFromDoc(
     attachments.push(await getFileFromDoc(copyContext(context, doc)));
   }
 
+  let tags = [];
+  for await (const id of context.data.tags!) {
+    const doc = (await Tag.findById(id.toString())) as Document;
+    tags.push(getTagFromDoc(doc));
+  }
+
   const doc = context.data;
 
   return {
@@ -41,7 +48,7 @@ export async function getTodoFromDoc(
     description: doc.description!,
     image: image,
     priority: doc.priority as TodoPriority,
-    tags: doc.tags!.map((id) => id.toString()),
+    tags: tags,
     attachments: attachments,
     createdAt: new Date(doc.createdAt!),
   };

@@ -5,7 +5,7 @@ import { StatusCodes } from "http-status-codes";
 import { Tag, type TagDTO } from "@models/todo";
 import type { Document } from "mongoose";
 
-function getTagFromDoc(doc: Document): TagDTO {
+export function getTagFromDoc(doc: Document): TagDTO {
   const document = doc as unknown as any;
   return {
     id: document._id.toString(),

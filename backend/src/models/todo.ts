@@ -23,7 +23,7 @@ export type TodoDTO = {
   description: string;
   image: ImageDTO | null;
   priority: TodoPriority;
-  tags: string[];
+  tags: TagDTO[];
   attachments: FileDTO[];
   createdAt: Date;
 };
