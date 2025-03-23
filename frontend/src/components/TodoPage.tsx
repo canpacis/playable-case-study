@@ -1,15 +1,20 @@
-import { IconLogout, IconPlus } from "@tabler/icons-react";
+import {
+  IconFilter,
+  IconLogout,
+  IconPlus,
+  IconSearch,
+} from "@tabler/icons-react";
 import {
   Button,
   Flex,
   Title,
-  SimpleGrid,
   Menu,
   useMatches,
   Avatar,
   Container,
   Loader,
   Text,
+  TextInput,
 } from "@mantine/core";
 import { auth } from "@utils/auth";
 import { Todo, TodoCard } from "@components/Todo";
@@ -17,6 +22,17 @@ import { useQuery } from "@tanstack/react-query";
 import { endpoints, Paginated, query } from "@utils/backend";
 import { useDisclosure } from "@mantine/hooks";
 import { TodoForm } from "./TodoForm";
+import { useMemo } from "react";
+
+function chunkToMasonryLayout(items: Todo[], cols: number) {
+  const columns: Todo[][] = Array.from({ length: cols }, () => []);
+
+  items.forEach((item, index) => {
+    columns[index % cols].push(item);
+  });
+
+  return columns;
+}
 
 export function TodoPage() {
   const user = auth.currentUser!;
@@ -34,6 +50,11 @@ export function TodoPage() {
     sm: 3,
     xs: 1,
   });
+
+  const layout = useMemo(
+    () => chunkToMasonryLayout(data?.items ?? [], cols),
+    [data, cols]
+  );
 
   return (
     <Container component="main" mih="100dvh">
@@ -53,6 +74,14 @@ export function TodoPage() {
           </Button>
           <TodoForm opened={modalOpened} close={closeModal} />
         </Flex>
+        <Flex gap="sm">
+          <TextInput
+            flex={1}
+            leftSection={<IconSearch size={14} />}
+            placeholder="Search todos"
+          />
+          <Button leftSection={<IconFilter size={14} />}>Filter</Button>
+        </Flex>
 
         {isLoading ? (
           <Flex align="center" justify="center" flex={1}>
@@ -63,11 +92,15 @@ export function TodoPage() {
             <Text>There was an error while loading. Please try again</Text>
           </Flex>
         ) : (
-          <SimpleGrid cols={cols}>
-            {data!.items.map((todo) => (
-              <TodoCard key={todo.id} todo={todo} />
+          <Flex gap="md">
+            {layout.map((column, i) => (
+              <Flex gap="md" direction="column" flex={1} key={i}>
+                {column.map((todo) => (
+                  <TodoCard key={todo.id} todo={todo} />
+                ))}
+              </Flex>
             ))}
-          </SimpleGrid>
+          </Flex>
         )}
       </Flex>
     </Container>
@@ -79,7 +112,7 @@ function Header() {
 
   return (
     <Flex align="center">
-      <Title order={1}>Todos</Title>
+      <Title order={1}>TaskPilot</Title>
 
       <Menu shadow="md" width={200} position="bottom-end">
         <Menu.Target>
