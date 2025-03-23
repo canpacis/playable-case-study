@@ -10,6 +10,21 @@ export type Paginated<T> = {
   hasPrevious: boolean;
 };
 
+export type ImageUpload = {
+  id: string;
+  thumbnail: string;
+  medium: string;
+  original: string;
+  createdAt: Date;
+};
+
+export type FileUpload = {
+  id: string;
+  originalName: string;
+  url: string;
+  createdAt: Date;
+};
+
 const BASE_URL = "http://localhost:5000";
 
 export const endpoints = {
@@ -17,6 +32,8 @@ export const endpoints = {
   createTodo: "/todos",
   deleteTodo: (id: string) => `/todos/${id}`,
   updateTodo: (id: string) => `/todos/${id}`,
+  uploadFile: "/upload/file",
+  uploadImage: "/upload/image",
 } as const;
 
 export type Endpoint = string;
@@ -77,6 +94,31 @@ export async function mutate(
   const resp = await fetch(url, {
     method: method,
     body: JSON.stringify(params),
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  return await resp.json();
+}
+
+export async function upload<T>(endpoint: Endpoint, file: File): Promise<T> {
+  const user = auth.currentUser;
+
+  if (!user) {
+    throw new Error("failed to query without a logged in user");
+  }
+
+  const data = new FormData();
+  data.set("file", file);
+
+  const url = new URL(`${BASE_URL}${endpoint}`);
+  const token = await user.getIdToken();
+
+  const resp = await fetch(url, {
+    method: "POST",
+    body: data,
     headers: {
       Authorization: `Bearer ${token}`,
     },

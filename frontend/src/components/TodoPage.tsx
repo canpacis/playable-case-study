@@ -15,10 +15,13 @@ import { auth } from "@utils/auth";
 import { Todo, TodoCard } from "@components/Todo";
 import { useQuery } from "@tanstack/react-query";
 import { endpoints, Paginated, query } from "@utils/backend";
-
+import { useDisclosure } from "@mantine/hooks";
+import { TodoForm } from "./TodoForm";
 
 export function TodoPage() {
   const user = auth.currentUser!;
+  const [modalOpened, { open: openModal, close: closeModal }] =
+    useDisclosure(false);
   const { isLoading, error, data } = useQuery({
     queryKey: [user.uid, "todo-list"],
     queryFn: () =>
@@ -45,7 +48,10 @@ export function TodoPage() {
         <Header />
         <Flex justify="space-between">
           <Title order={2}>My Todos</Title>
-          <Button leftSection={<IconPlus size={18} />}>Add Todo</Button>
+          <Button onClick={openModal} leftSection={<IconPlus size={18} />}>
+            Add Todo
+          </Button>
+          <TodoForm opened={modalOpened} close={closeModal} />
         </Flex>
 
         {isLoading ? (

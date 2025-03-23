@@ -1,6 +1,7 @@
 .card {
   border: 1px solid var(--mantine-color-gray-4);
   border-radius: var(--mantine-radius-md);
+  height: fit-content;
 
   p {
     color: var(--mantine-color-gray-6);
@@ -10,7 +11,7 @@
   img {
     border-top-left-radius: var(--mantine-radius-md);
     border-top-right-radius: var(--mantine-radius-md);
-    min-height: 190px;
+    object-fit: cover;
   }
 }
 

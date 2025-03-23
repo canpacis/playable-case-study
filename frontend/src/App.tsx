@@ -1,4 +1,5 @@
 import "@mantine/core/styles.css";
+import "@mantine/dropzone/styles.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 
 import { Flex, Loader, MantineProvider } from "@mantine/core";
@@ -16,6 +17,7 @@ export default function App() {
   useEffect(() => {
     auth.onAuthStateChanged(() => {
       setCurrentUser(auth.currentUser);
+      auth.currentUser?.getIdToken().then(console.log)
       setReady(true);
     });
   }, []);
