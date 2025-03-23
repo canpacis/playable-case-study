@@ -26,7 +26,10 @@ export async function authMiddleware(
   }
 
   try {
-    req.user = await auth.verifyIdToken(token, true);
+    const decoded = await auth.verifyIdToken(token, true);
+    req.user = {
+      id: decoded.user_id,
+    };
     next();
   } catch (error) {
     res.status(StatusCode.UNAUTHORIZED).json({ error: "unauthorized" });

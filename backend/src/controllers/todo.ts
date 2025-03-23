@@ -16,7 +16,7 @@ import {
 } from "@models/todo";
 import { FileUpload, ImageUpload } from "@models/file";
 import type { InferRawDocType, ObjectId } from "mongoose";
-import { getImageFromDoc } from "./file";
+import { getFileFromDoc, getImageFromDoc } from "./file";
 
 export async function getTodoFromDoc(
   context: Context<InferRawDocType<typeof schemaDef> & { _id: ObjectId }>
@@ -26,6 +26,13 @@ export async function getTodoFromDoc(
     const doc = await ImageUpload.findById(context.data.image);
     image = await getImageFromDoc(copyContext(context, doc as unknown as any));
   }
+
+  let attachments = [];
+  for await (const id of context.data.attachments!) {
+    const doc = await FileUpload.findById(id.toString());
+    attachments.push(await getFileFromDoc(copyContext(context, doc)));
+  }
+
   const doc = context.data;
 
   return {
@@ -35,13 +42,13 @@ export async function getTodoFromDoc(
     image: image,
     priority: doc.priority as TodoPriority,
     tags: doc.tags!.map((id) => id.toString()),
-    attachments: doc.attachments!.map((id) => id.toString()),
-    created_at: new Date(doc.created_at!),
+    attachments: attachments,
+    createdAt: new Date(doc.createdAt!),
   };
 }
 
 const createTodoSchema = z.object({
-  title: z.string().min(2).max(40),
+  title: z.string().min(1).max(40),
   description: z.string(),
   // a user id in firebase is a string in length 28.
   // this might cause problem if the app moves away from firebase (?)
@@ -60,7 +67,7 @@ export async function createTodo(
 ): Promise<TodoDTO> {
   const validation = createTodoSchema.safeParse({
     ...context.data,
-    author: context.request.user.user_id,
+    author: context.request.user.id,
   });
 
   if (!validation.success) {
@@ -91,7 +98,7 @@ export async function createTodo(
   }
 
   try {
-    const doc = new Todo({ ...data, created_at: new Date() });
+    const doc = new Todo({ ...data, createdAt: new Date() });
     await doc.save();
     return getTodoFromDoc(copyContext(context, doc as unknown as any));
   } catch (error) {
@@ -122,14 +129,16 @@ export async function listTodos(
 
   try {
     const total = await Todo.countDocuments();
-    const todos = await Todo.find({ author: context.request.user.user_id })
+    const todos = await Todo.find({ author: context.request.user.id })
       .limit(perPage)
       .skip((page - 1) * perPage)
       .exec();
 
     return {
       items: await Promise.all(
-        todos.map((todo) => getTodoFromDoc(copyContext(context, todo as unknown as any)))
+        todos.map((todo) =>
+          getTodoFromDoc(copyContext(context, todo as unknown as any))
+        )
       ),
       total: total,
       hasNext: page * perPage < total,
@@ -145,7 +154,7 @@ export async function getTodo(context: Context<string>): Promise<TodoDTO> {
   const todo = await Todo.findById(id).exec();
 
   // If the author is not the user return 404 as well
-  if (!todo || todo.author !== context.request.user.user_id) {
+  if (!todo || todo.author !== context.request.user.id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
@@ -156,6 +165,9 @@ const updateTodoSchema = z.object({
   title: z.string().min(2).max(40).optional(),
   description: z.string().optional(),
   priority: z.enum(["high", "medium", "low"]).optional(),
+  image: z.string().length(24).optional(),
+  tags: z.array(z.string().length(24)),
+  attachments: z.array(z.string().length(24)),
 });
 
 export type UpdateTodoDTO = z.infer<typeof updateTodoSchema>;
@@ -180,19 +192,42 @@ export async function updateTodo(
 
   const doc = await Todo.findById(context.data.id).exec();
   // If the author is not the user return 404 as well
-  if (!doc || doc.author !== context.request.user.user_id) {
+  if (!doc || doc.author !== context.request.user.id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
+  const tagCount = await Tag.countDocuments({ _id: { $in: data.tags } });
+  if (tagCount !== data.tags.length) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "invalid tag relation");
+  }
+
+  const attachmentCount = await FileUpload.countDocuments({
+    _id: { $in: data.attachments },
+  });
+  if (attachmentCount !== data.attachments.length) {
+    throw new AppError(StatusCodes.BAD_REQUEST, "invalid attachment relation");
+  }
+
+  if (data.image) {
+    const image = await ImageUpload.findById(data.image);
+    if (!image) {
+      throw new AppError(StatusCodes.BAD_REQUEST, "invalid image relation");
+    }
+  }
+
   try {
-    await Todo.findByIdAndUpdate(context.data.id, {
+    const document = await Todo.findByIdAndUpdate(context.data.id, {
       title: data.title,
       description: data.description,
       priority: data.priority,
+      image: data.image,
+      tags: data.tags,
+      attachments: data.attachments,
     });
 
-    // TODO: update this this is not right
-    return Object.assign(await getTodoFromDoc(copyContext(context, doc as unknown as any)), data);
+    return await getTodoFromDoc(
+      copyContext(context, document as unknown as any)
+    );
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
@@ -203,7 +238,7 @@ export async function deleteTodo(context: Context<string>): Promise<boolean> {
   const todo = await Todo.findById(id).exec();
 
   // If the author is not the user return 404 as well
-  if (!todo || todo.author !== context.request.user.user_id) {
+  if (!todo || todo.author !== context.request.user.id) {
     throw new AppError(StatusCodes.NOT_FOUND, "Resource not found");
   }
 
