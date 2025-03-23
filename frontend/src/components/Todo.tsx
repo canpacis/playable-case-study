@@ -20,31 +20,14 @@ import {
   method,
   endpoints,
   queryClient,
-  ImageUpload,
-  FileUpload,
+  TodoPriority,
+  Todo,
 } from "@utils/backend";
 import { auth } from "@utils/auth";
 import { formatDate } from "@utils/misc";
 import { TodoForm } from "./TodoForm";
 import { useDisclosure } from "@mantine/hooks";
 
-export type TodoPriority = "high" | "medium" | "low";
-
-export type Tag = {
-  id: string;
-  title: string;
-};
-
-export type Todo = {
-  id: string;
-  title: string;
-  description: string;
-  image: ImageUpload | null;
-  priority: TodoPriority;
-  // tags: Tag[];
-  attachments: FileUpload[];
-  createdAt: Date;
-};
 
 const priorityLabel: Record<TodoPriority, string> = {
   high: "High",
@@ -105,10 +88,10 @@ export function TodoCard({ todo }: { todo: Todo }) {
             </Menu.Dropdown>
           </Menu>
         </Flex>
-        <Text lineClamp={4} size="md">
+        <Text size="md">
           {todo.description}
         </Text>
-        {/* {todo.tags.length > 0 && (
+        {todo.tags.length > 0 && (
           <Flex mt="sm" wrap="wrap" gap="xs">
             {todo.tags.map((tag) => (
               <Badge
@@ -121,7 +104,7 @@ export function TodoCard({ todo }: { todo: Todo }) {
               </Badge>
             ))}
           </Flex>
-        )} */}
+        )}
         {todo.attachments.length > 0 && (
           <Flex mt="sm" wrap="wrap" gap="xs">
             {todo.attachments.map((attachment) => (

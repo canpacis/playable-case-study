@@ -10,6 +10,19 @@ export type Paginated<T> = {
   hasPrevious: boolean;
 };
 
+export type TodoPriority = "high" | "medium" | "low";
+
+export type Todo = {
+  id: string;
+  title: string;
+  description: string;
+  image: ImageUpload | null;
+  priority: TodoPriority;
+  tags: Tag[];
+  attachments: FileUpload[];
+  createdAt: Date;
+};
+
 export type ImageUpload = {
   id: string;
   thumbnail: string;
@@ -25,6 +38,12 @@ export type FileUpload = {
   createdAt: Date;
 };
 
+export type Tag = {
+  id: string;
+  title: string;
+  createdAt: Date;
+};
+
 const BASE_URL = "http://localhost:5000";
 
 export const endpoints = {
@@ -34,6 +53,8 @@ export const endpoints = {
   updateTodo: (id: string) => `/todos/${id}`,
   uploadFile: "/upload/file",
   uploadImage: "/upload/image",
+  listTags: "/tags",
+  createTag: "/tags",
 } as const;
 
 export type Endpoint = string;

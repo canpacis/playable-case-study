@@ -25,15 +25,18 @@ import {
 } from "@mantine/core";
 import { Dropzone, FileWithPath, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { auth } from "@utils/auth";
-import { Todo, TodoPriority } from "@components/Todo";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   endpoints,
   FileUpload,
   ImageUpload,
   method,
   mutate,
+  query,
   queryClient,
+  Tag,
+  Todo,
+  TodoPriority,
   upload,
 } from "@utils/backend";
 import { useLocalStorage } from "@mantine/hooks";
@@ -64,6 +67,32 @@ export function TodoForm({
   const [lastForm, setLastForm] = useLocalStorage<TodoForm | null>({
     key: "last-create-form",
     defaultValue: null,
+  });
+
+  const {
+    isLoading: tagsLoading,
+    data: tagData,
+    error: tagError,
+  } = useQuery({
+    queryKey: [auth.currentUser?.uid, "tags"],
+    queryFn: () => query<Tag[]>(endpoints.listTags),
+  });
+
+  // if (tagError) {
+  //   notifications.show({
+  //     title: "Error",
+  //     message: "There was an error loading the tags",
+  //   });
+  // }
+
+  const createTag = useMutation({
+    mutationFn: (title: string) =>
+      mutate(endpoints.createTag, method.Post, { title }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [auth.currentUser?.uid, "tags"],
+      });
+    },
   });
 
   let initialValues: TodoForm;
@@ -140,6 +169,13 @@ export function TodoForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
 
+  useEffect(() => {
+    if (createTag.data) {
+      form.insertListItem("tags", createTag.data.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createTag.data]);
+
   const handleImageDrop = async (files: FileWithPath[]) => {
     try {
       setUploadLoading(true);
@@ -179,11 +215,6 @@ export function TodoForm({
     } else {
       create.mutate(data);
     }
-    // create.mutate(
-    //   Object.assign(values, {
-    //     image: values.image || undefined,
-    //   })
-    // );
   };
 
   return (
@@ -292,8 +323,29 @@ export function TodoForm({
               description="Organize your todos with tags"
               placeholder="Enter tags"
               key={form.key("tags")}
-              {...form.getInputProps("tags")}
-              data={["Hey"]}
+              onChange={(values) => {
+                if (!tagData) {
+                  return;
+                }
+
+                // Either set the tags form value or create a new tag
+                form.setFieldValue(
+                  "tags",
+                  values
+                    .map((tag) => {
+                      const found = tagData.find((data) => data.title === tag);
+                      if (found) {
+                        return found.id;
+                      }
+
+                      createTag.mutate(tag);
+                      return undefined;
+                    })
+                    .filter((item) => item !== undefined)
+                );
+              }}
+              disabled={tagsLoading || createTag.isPending || tagError !== null}
+              data={tagData?.map((item) => item.title) ?? []}
             />
             <Flex gap="sm" wrap="wrap">
               {form.values.attachments.length === 0 ? (

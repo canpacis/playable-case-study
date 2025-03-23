@@ -1,8 +1,10 @@
 import "@mantine/core/styles.css";
 import "@mantine/dropzone/styles.css";
+import "@mantine/notifications/styles.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router";
 
 import { Flex, Loader, MantineProvider } from "@mantine/core";
+import { Notifications } from "@mantine/notifications";
 import { TodoPage } from "@components/TodoPage";
 import { LoginPage } from "@components/LoginPage";
 import { auth } from "@utils/auth";
@@ -17,7 +19,7 @@ export default function App() {
   useEffect(() => {
     auth.onAuthStateChanged(() => {
       setCurrentUser(auth.currentUser);
-      auth.currentUser?.getIdToken().then(console.log)
+      auth.currentUser?.getIdToken().then(console.log);
       setReady(true);
     });
   }, []);
@@ -25,6 +27,7 @@ export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <MantineProvider>
+        <Notifications />
         {ready ? (
           <BrowserRouter>
             <Routes>
