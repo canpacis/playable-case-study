@@ -15,14 +15,15 @@ import {
   Loader,
   Text,
   TextInput,
+  Checkbox,
 } from "@mantine/core";
 import { auth } from "@utils/auth";
-import { Todo, TodoCard } from "@components/Todo";
+import { TodoCard } from "@components/Todo";
 import { useQuery } from "@tanstack/react-query";
-import { endpoints, Paginated, query } from "@utils/backend";
-import { useDisclosure } from "@mantine/hooks";
+import { endpoints, Paginated, query, Tag, Todo } from "@utils/backend";
+import { useDebouncedValue, useDisclosure } from "@mantine/hooks";
 import { TodoForm } from "./TodoForm";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 function chunkToMasonryLayout(items: Todo[], cols: number) {
   const columns: Todo[][] = Array.from({ length: cols }, () => []);
@@ -36,12 +37,29 @@ function chunkToMasonryLayout(items: Todo[], cols: number) {
 
 export function TodoPage() {
   const user = auth.currentUser!;
+  const [searchValue, setSearchValue] = useState("");
+  const [debounced] = useDebouncedValue(searchValue, 200);
+
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
   const { isLoading, error, data } = useQuery({
     queryKey: [user.uid, "todo-list"],
     queryFn: () =>
       query<Paginated<Todo>>(endpoints.listTodos, { page: 1, perPage: 10 }),
+  });
+
+  const {
+    isLoading: tagsLoading,
+    data: tagData,
+    error: tagError,
+  } = useQuery({
+    queryKey: [user.uid, "tags"],
+    queryFn: () => query<Tag[]>(endpoints.listTags),
+  });
+
+  const { isLoading: searchLoading, data: searchData } = useQuery({
+    queryKey: [user.uid, "search", debounced],
+    queryFn: () => query<Todo[]>(endpoints.search, { q: debounced }),
   });
 
   const cols = useMatches({
@@ -51,10 +69,12 @@ export function TodoPage() {
     xs: 1,
   });
 
-  const layout = useMemo(
-    () => chunkToMasonryLayout(data?.items ?? [], cols),
-    [data, cols]
-  );
+  const layout = useMemo(() => {
+    if (debounced.length > 0 && searchData) {
+      return chunkToMasonryLayout(searchData ?? [], cols);
+    }
+    return chunkToMasonryLayout(data?.items ?? [], cols);
+  }, [data, searchData, cols, debounced]);
 
   return (
     <Container component="main" mih="100dvh">
@@ -79,11 +99,29 @@ export function TodoPage() {
             flex={1}
             leftSection={<IconSearch size={14} />}
             placeholder="Search todos"
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
           />
-          <Button leftSection={<IconFilter size={14} />}>Filter</Button>
+          <Menu position="bottom-end">
+            <Menu.Target>
+              <Button
+                disabled={tagsLoading || tagError !== null}
+                leftSection={<IconFilter size={14} />}
+              >
+                Filter
+              </Button>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {tagData?.map((tag) => (
+                <Menu.Item key={tag.id}>
+                  <Checkbox label={tag.title} />
+                </Menu.Item>
+              ))}
+            </Menu.Dropdown>
+          </Menu>
         </Flex>
 
-        {isLoading ? (
+        {isLoading || searchLoading ? (
           <Flex align="center" justify="center" flex={1}>
             <Loader />
           </Flex>

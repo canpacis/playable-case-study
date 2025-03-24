@@ -55,6 +55,7 @@ export const endpoints = {
   uploadImage: "/upload/image",
   listTags: "/tags",
   createTag: "/tags",
+  search: "/todos/search",
 } as const;
 
 export type Endpoint = string;
