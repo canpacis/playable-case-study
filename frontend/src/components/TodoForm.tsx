@@ -164,6 +164,7 @@ export function TodoForm({
     mutationFn: async (body: TodoForm) => {
       return await mutate(endpoints.createTodo, method.Post, {
         ...body,
+        recommendation: recommendation.data,
         attachments: body.attachments.map((a) => a.id),
       });
     },
@@ -183,6 +184,7 @@ export function TodoForm({
       }
       return await mutate(endpoints.updateTodo(defaultValue.id), method.Patch, {
         ...body,
+        recommendation: recommendation.data,
         attachments: body.attachments.map((a) => a.id),
       });
     },
@@ -518,7 +520,11 @@ function EnhancedInput({
         <Text size="sm" fw={500}>
           {label}
         </Text>
-        <Flex className={classes.unstyled_input_wrapper} wrap="nowrap" align="center">
+        <Flex
+          className={classes.unstyled_input_wrapper}
+          wrap="nowrap"
+          align="center"
+        >
           <input
             value={value}
             onChange={(e) => setValue(e.target.value)}
@@ -531,7 +537,11 @@ function EnhancedInput({
             </UnstyledButton>
           )}
           {recommendation.length > 0 && (
-            <UnstyledButton my="auto" onClick={() => setValue(recommendation)} ml={4}>
+            <UnstyledButton
+              my="auto"
+              onClick={() => setValue(recommendation)}
+              ml={4}
+            >
               <Text size="sm" c="dimmed">
                 <span>{recommendation}</span>
                 <IconSparkles style={{ marginLeft: 4 }} size={12} />
