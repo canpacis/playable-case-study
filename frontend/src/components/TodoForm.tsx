@@ -369,37 +369,6 @@ export function TodoForm({
                 value: tag.id,
               }))}
             />
-            {/* <TagsInput
-              label="Press Enter to create a tag"
-              description="Organize your todos with tags"
-              placeholder="Enter tags"
-              key={form.key("tags")}
-              // this does not work
-              // value={form.values.tags}
-              // onChange={(values) => {
-              //   if (!tagData) {
-              //     return;
-              //   }
-
-              //   // Either set the tags form value or create a new tag
-              //   form.setFieldValue(
-              //     "tags",
-              //     values
-              //       .map((tag) => {
-              //         const found = tagData.find((data) => data.title === tag);
-              //         if (found) {
-              //           return found.id;
-              //         }
-
-              //         createTag.mutate(tag);
-              //         return undefined;
-              //       })
-              //       .filter((item) => item !== undefined)
-              //   );
-              // }}
-              disabled={tagsLoading || createTag.isPending || tagError !== null}
-              data={tagData?.map((item) => item.title) ?? []}
-            /> */}
             <Flex gap="sm" wrap="wrap">
               {form.values.attachments.length === 0 ? (
                 <FileButton onChange={handleFileUpload}>
