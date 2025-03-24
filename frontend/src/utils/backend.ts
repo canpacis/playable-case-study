@@ -59,6 +59,7 @@ export const endpoints = {
   listTags: "/tags",
   createTag: "/tags",
   search: "/todos/search",
+  recommend: "/recommend",
 } as const;
 
 export type Endpoint = string;
@@ -101,11 +102,11 @@ export const method = {
 
 export type MutateMethod = (typeof method)[keyof typeof method];
 
-export async function mutate(
+export async function mutate<T>(
   endpoint: Endpoint,
   method: MutateMethod,
   params: Record<string, unknown> = {}
-) {
+): Promise<T> {
   const user = auth.currentUser;
 
   if (!user) {

@@ -18,7 +18,7 @@ export function LoginPage(props: PaperProps) {
 
   return (
     <Flex mih="100dvh" align="center" justify="center">
-      <Container maw="40vw">
+      <Container maw="96vw">
         <Paper radius="md" p="xl" withBorder {...props}>
           <Text fw={500}>Welcome to TaskPilot, login with</Text>
 

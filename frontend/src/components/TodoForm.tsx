@@ -3,6 +3,7 @@ import {
   IconPaperclip,
   IconPhoto,
   IconPlus,
+  IconSparkles,
   IconUpload,
   IconX,
 } from "@tabler/icons-react";
@@ -11,8 +12,6 @@ import {
   Flex,
   Text,
   Modal,
-  TextInput,
-  Textarea,
   TagsInput,
   Group,
   Select,
@@ -22,6 +21,8 @@ import {
   ActionIcon,
   Tooltip,
   FileButton,
+  UnstyledButton,
+  Loader,
 } from "@mantine/core";
 import { Dropzone, FileWithPath, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { auth } from "@utils/auth";
@@ -39,7 +40,7 @@ import {
   TodoPriority,
   upload,
 } from "@utils/backend";
-import { useLocalStorage } from "@mantine/hooks";
+import { useDebouncedCallback, useLocalStorage } from "@mantine/hooks";
 import { useForm } from "@mantine/form";
 import { useEffect, useState } from "react";
 
@@ -52,6 +53,24 @@ type TodoForm = {
   tags: string[];
 };
 
+type AIPrompt = {
+  title: string;
+  description: string;
+  priority: TodoPriority;
+  tags: string[];
+};
+
+function prompt(form: TodoForm, tagData: Tag[]): AIPrompt {
+  return {
+    title: form.title,
+    description: form.description,
+    priority: form.priority as TodoPriority,
+    tags: form.tags
+      .map((id) => tagData.find((tag) => tag.id === id)?.title)
+      .filter((tag) => tag !== undefined),
+  };
+}
+
 export function TodoForm({
   opened,
   close,
@@ -61,6 +80,7 @@ export function TodoForm({
   close: () => void;
   defaultValue?: Todo;
 }) {
+  const user = auth.currentUser!;
   const isEditing = !!defaultValue;
   const [uploadLoading, setUploadLoading] = useState(false);
   const [attachmentLoading, setAttachmentLoading] = useState(false);
@@ -74,7 +94,7 @@ export function TodoForm({
     data: tagData,
     error: tagError,
   } = useQuery({
-    queryKey: [auth.currentUser?.uid, "tags"],
+    queryKey: [user.uid, "tags"],
     queryFn: () => query<Tag[]>(endpoints.listTags),
   });
 
@@ -87,10 +107,10 @@ export function TodoForm({
 
   const createTag = useMutation({
     mutationFn: (title: string) =>
-      mutate(endpoints.createTag, method.Post, { title }),
+      mutate<Tag>(endpoints.createTag, method.Post, { title }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [auth.currentUser?.uid, "tags"],
+        queryKey: [user.uid, "tags"],
       });
     },
   });
@@ -99,7 +119,7 @@ export function TodoForm({
   if (defaultValue) {
     initialValues = {
       ...defaultValue,
-      tags: defaultValue.tags.map(tag => tag.title),
+      tags: defaultValue.tags.map((tag) => tag.title),
     };
   } else {
     if (lastForm) {
@@ -116,6 +136,16 @@ export function TodoForm({
     }
   }
 
+  const recommendation = useMutation({
+    mutationFn: (prompt: AIPrompt) => {
+      return mutate<AIPrompt>(endpoints.recommend, method.Post, prompt);
+    },
+  });
+
+  const updateValues = useDebouncedCallback((values: TodoForm) => {
+    recommendation.mutate(prompt(values, tagData ?? []));
+  }, 1000);
+
   const form = useForm<TodoForm>({
     initialValues: initialValues,
     validate: {
@@ -127,6 +157,7 @@ export function TodoForm({
           ? null
           : "Please pick a priorty",
     },
+    onValuesChange: updateValues,
   });
 
   const create = useMutation({
@@ -140,7 +171,7 @@ export function TodoForm({
       form.reset();
       close();
       queryClient.invalidateQueries({
-        queryKey: [auth.currentUser!.uid, "todo-list"],
+        queryKey: [user.uid, "todo-list"],
       });
     },
   });
@@ -159,7 +190,7 @@ export function TodoForm({
       form.reset();
       close();
       queryClient.invalidateQueries({
-        queryKey: [auth.currentUser!.uid, "todo-list"],
+        queryKey: [user.uid, "todo-list"],
       });
     },
   });
@@ -222,6 +253,7 @@ export function TodoForm({
       closeOnClickOutside={false}
       opened={opened}
       onClose={close}
+      size="lg"
       title="Create a new Todo"
     >
       <Flex direction="column" gap="sm">
@@ -291,20 +323,32 @@ export function TodoForm({
             overlayProps={{ radius: "sm", blur: 2 }}
           />
           <form className={classes.form} onSubmit={form.onSubmit(handleSubmit)}>
-            <TextInput
+            {/* <TextInput
               withAsterisk
               label="Title"
               placeholder="Todo title"
               key={form.key("title")}
               {...form.getInputProps("title")}
+            /> */}
+            <EnhancedInput
+              label="Title"
+              placeholder="Todo title"
+              value={form.values.title}
+              setValue={(value) => form.setFieldValue("title", value)}
+              recommendation={
+                recommendation.data ? recommendation.data.title : ""
+              }
+              loading={recommendation.isPending}
             />
-            <Textarea
-              withAsterisk
-              rows={4}
+            <EnhancedTextarea
               label="Description"
               placeholder="Explain what you need to do"
-              key={form.key("description")}
-              {...form.getInputProps("description")}
+              value={form.values.description}
+              setValue={(value) => form.setFieldValue("description", value)}
+              recommendation={
+                recommendation.data ? recommendation.data.description : ""
+              }
+              loading={recommendation.isPending}
             />
             <Select
               withAsterisk
@@ -447,5 +491,99 @@ function TodoImage({ url, clear }: { url: string; clear: () => void }) {
         </ActionIcon>
       </Tooltip>
     </Box>
+  );
+}
+
+// Should probably do a forward ref but alas
+type EnhancedInputProps = {
+  placeholder: string;
+  value: string;
+  setValue: (value: string) => void;
+  recommendation: string;
+  label: string;
+  loading: boolean;
+};
+
+function EnhancedInput({
+  placeholder,
+  value,
+  setValue,
+  recommendation,
+  label,
+  loading,
+}: EnhancedInputProps) {
+  return (
+    <label title={label}>
+      <Flex direction="column" gap={2}>
+        <Text size="sm" fw={500}>
+          {label}
+        </Text>
+        <Flex className={classes.unstyled_input_wrapper} wrap="nowrap" align="center">
+          <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={placeholder}
+            type="text"
+          />
+          {loading && (
+            <UnstyledButton ml={4}>
+              <Loader size={10} />
+            </UnstyledButton>
+          )}
+          {recommendation.length > 0 && (
+            <UnstyledButton my="auto" onClick={() => setValue(recommendation)} ml={4}>
+              <Text size="sm" c="dimmed">
+                <span>{recommendation}</span>
+                <IconSparkles style={{ marginLeft: 4 }} size={12} />
+              </Text>
+            </UnstyledButton>
+          )}
+        </Flex>
+      </Flex>
+    </label>
+  );
+}
+
+function EnhancedTextarea({
+  placeholder,
+  value,
+  setValue,
+  recommendation,
+  label,
+  loading,
+}: EnhancedInputProps) {
+  return (
+    <label title={label}>
+      <Flex direction="column" gap={2}>
+        <Text size="sm" fw={500}>
+          {label}
+        </Text>
+        <Box
+          className={[
+            classes.unstyled_input_wrapper,
+            classes.unstyled_textarea_wrapper,
+          ].join(" ")}
+        >
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder={placeholder}
+          />
+          {loading && (
+            <UnstyledButton ml={4}>
+              <Loader size={10} />
+            </UnstyledButton>
+          )}
+          {recommendation.length > 0 && (
+            <UnstyledButton onClick={() => setValue(recommendation)} ml={4}>
+              <Text size="sm" c="dimmed">
+                <span>{recommendation}</span>
+                <IconSparkles style={{ marginLeft: 4 }} size={12} />
+              </Text>
+            </UnstyledButton>
+          )}
+        </Box>
+      </Flex>
+    </label>
   );
 }
