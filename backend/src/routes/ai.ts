@@ -10,7 +10,6 @@ export function initAiRoutes(app: Application) {
     authMiddleware,
     async (req: Request, res: Response) => {
       try {
-        console.log(req.body);
         const recommendation = await recommendContent(
           createContext(req, req.body)
         );

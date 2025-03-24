@@ -1,5 +1,5 @@
 import { v4 } from "uuid";
-import { copyContext, type Context } from "@utils/misc";
+import { type Context } from "@utils/misc";
 import { getAppBucket } from "@config/storage";
 import {
   FileUpload,
@@ -10,7 +10,7 @@ import {
 import { Readable } from "stream";
 import { db, storage } from "@/main";
 import sharp from "sharp";
-import { AppError } from "../config/error";
+import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
 
 export async function getFileFromDoc(document: any): Promise<FileDTO> {
@@ -54,7 +54,7 @@ export async function uploadFile(
 
   await session.commitTransaction();
   await session.endSession();
-  return getFileFromDoc(copyContext(context, document));
+  return getFileFromDoc(document);
 }
 
 export async function getImageFromDoc(document: any): Promise<ImageDTO> {
@@ -108,9 +108,7 @@ export async function uploadImage(context: Context<Buffer>): Promise<ImageDTO> {
       createdAt: new Date(),
     }).save();
 
-    return await getImageFromDoc(
-      copyContext(context, document as unknown as any)
-    );
+    return await getImageFromDoc(document);
   } catch (error) {
     throw new AppError(StatusCodes.INTERNAL_SERVER_ERROR, String(error));
   }
