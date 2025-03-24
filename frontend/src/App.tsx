@@ -19,7 +19,6 @@ export default function App() {
   useEffect(() => {
     auth.onAuthStateChanged(() => {
       setCurrentUser(auth.currentUser);
-      auth.currentUser?.getIdToken().then(console.log);
       setReady(true);
     });
   }, []);

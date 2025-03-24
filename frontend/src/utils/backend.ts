@@ -21,6 +21,14 @@ export type Todo = {
   tags: Tag[];
   attachments: FileUpload[];
   createdAt: Date;
+  recommendation: AIRecommendation;
+};
+
+export type AIRecommendation = {
+  title: string;
+  description: string;
+  priority: TodoPriority;
+  tags: string[];
 };
 
 export type ImageUpload = {
@@ -59,6 +67,7 @@ export const endpoints = {
   listTags: "/tags",
   createTag: "/tags",
   search: "/todos/search",
+  filter: "/todos/filter",
   recommend: "/recommend",
 } as const;
 

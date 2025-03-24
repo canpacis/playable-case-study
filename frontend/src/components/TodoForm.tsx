@@ -12,7 +12,6 @@ import {
   Flex,
   Text,
   Modal,
-  TagsInput,
   Group,
   Select,
   LoadingOverlay,
@@ -23,11 +22,13 @@ import {
   FileButton,
   UnstyledButton,
   Loader,
+  MultiSelect,
 } from "@mantine/core";
 import { Dropzone, FileWithPath, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { auth } from "@utils/auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  AIRecommendation,
   endpoints,
   FileUpload,
   ImageUpload,
@@ -53,14 +54,7 @@ type TodoForm = {
   tags: string[];
 };
 
-type AIPrompt = {
-  title: string;
-  description: string;
-  priority: TodoPriority;
-  tags: string[];
-};
-
-function prompt(form: TodoForm, tagData: Tag[]): AIPrompt {
+function prompt(form: TodoForm, tagData: Tag[]): AIRecommendation {
   return {
     title: form.title,
     description: form.description,
@@ -92,7 +86,7 @@ export function TodoForm({
   const {
     isLoading: tagsLoading,
     data: tagData,
-    error: tagError,
+    error: tagsError,
   } = useQuery({
     queryKey: [user.uid, "tags"],
     queryFn: () => query<Tag[]>(endpoints.listTags),
@@ -137,8 +131,8 @@ export function TodoForm({
   }
 
   const recommendation = useMutation({
-    mutationFn: (prompt: AIPrompt) => {
-      return mutate<AIPrompt>(endpoints.recommend, method.Post, prompt);
+    mutationFn: (prompt: AIRecommendation) => {
+      return mutate<AIRecommendation>(endpoints.recommend, method.Post, prompt);
     },
   });
 
@@ -184,7 +178,7 @@ export function TodoForm({
       }
       return await mutate(endpoints.updateTodo(defaultValue.id), method.Patch, {
         ...body,
-        recommendation: recommendation.data,
+        recommendation: recommendation.data ?? defaultValue.recommendation,
         attachments: body.attachments.map((a) => a.id),
       });
     },
@@ -364,7 +358,18 @@ export function TodoForm({
               key={form.key("priority")}
               {...form.getInputProps("priority")}
             />
-            <TagsInput
+            <MultiSelect
+              label="Tags"
+              placeholder="Add tags to organize your todos"
+              disabled={tagsLoading || tagsError !== null}
+              value={form.values.tags}
+              onChange={(values) => form.setFieldValue("tags", values)}
+              data={(tagData ?? []).map((tag) => ({
+                label: tag.title,
+                value: tag.id,
+              }))}
+            />
+            {/* <TagsInput
               label="Press Enter to create a tag"
               description="Organize your todos with tags"
               placeholder="Enter tags"
@@ -394,7 +399,7 @@ export function TodoForm({
               // }}
               disabled={tagsLoading || createTag.isPending || tagError !== null}
               data={tagData?.map((item) => item.title) ?? []}
-            />
+            /> */}
             <Flex gap="sm" wrap="wrap">
               {form.values.attachments.length === 0 ? (
                 <FileButton onChange={handleFileUpload}>

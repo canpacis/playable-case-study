@@ -1,9 +1,4 @@
-import {
-  IconFilter,
-  IconLogout,
-  IconPlus,
-  IconSearch,
-} from "@tabler/icons-react";
+import { IconLogout, IconPlus, IconSearch } from "@tabler/icons-react";
 import {
   Button,
   Flex,
@@ -15,8 +10,8 @@ import {
   Loader,
   Text,
   TextInput,
-  Checkbox,
   Pagination,
+  MultiSelect,
 } from "@mantine/core";
 import { auth } from "@utils/auth";
 import { TodoCard } from "@components/Todo";
@@ -41,7 +36,8 @@ export function TodoPage() {
   const perPage = 9;
   const [page, setPage] = useState(1);
   const [searchValue, setSearchValue] = useState("");
-  const [debounced] = useDebouncedValue(searchValue, 200);
+  const [filters, setFilters] = useState<string[]>([]);
+  const [debouncedSearch] = useDebouncedValue(searchValue, 200);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
@@ -57,15 +53,20 @@ export function TodoPage() {
   const {
     isLoading: tagsLoading,
     data: tagData,
-    error: tagError,
+    error: tagsError,
   } = useQuery({
     queryKey: [user.uid, "tags"],
     queryFn: () => query<Tag[]>(endpoints.listTags),
   });
 
   const { isLoading: searchLoading, data: searchData } = useQuery({
-    queryKey: [user.uid, "search", debounced],
-    queryFn: () => query<Todo[]>(endpoints.search, { q: debounced }),
+    queryKey: [user.uid, "search", debouncedSearch],
+    queryFn: () => query<Todo[]>(endpoints.search, { q: debouncedSearch }),
+  });
+
+  const { isLoading: filterLoading, data: filterData } = useQuery({
+    queryKey: [user.uid, "filter", filters],
+    queryFn: () => query<Todo[]>(endpoints.filter, { t: filters.join(",") }),
   });
 
   const cols = useMatches({
@@ -76,11 +77,16 @@ export function TodoPage() {
   });
 
   const layout = useMemo(() => {
-    if (debounced.length > 0 && searchData) {
+    if (filters.length > 0 && filterData) {
+      return chunkToMasonryLayout(filterData ?? [], cols);
+    }
+    if (debouncedSearch.length > 0 && searchData) {
       return chunkToMasonryLayout(searchData ?? [], cols);
     }
     return chunkToMasonryLayout(data?.items ?? [], cols);
-  }, [data, searchData, cols, debounced]);
+  }, [data, searchData, cols, debouncedSearch, filters, filterData]);
+
+  const isPaginated = filters.length === 0 && debouncedSearch.length === 0;
 
   return (
     <Container component="main" mih="100dvh">
@@ -108,26 +114,19 @@ export function TodoPage() {
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
           />
-          <Menu position="bottom-end">
-            <Menu.Target>
-              <Button
-                disabled={tagsLoading || tagError !== null}
-                leftSection={<IconFilter size={14} />}
-              >
-                Filter
-              </Button>
-            </Menu.Target>
-            <Menu.Dropdown>
-              {tagData?.map((tag) => (
-                <Menu.Item key={tag.id}>
-                  <Checkbox label={tag.title} />
-                </Menu.Item>
-              ))}
-            </Menu.Dropdown>
-          </Menu>
+          <MultiSelect
+            maw={300}
+            disabled={tagsLoading || tagsError !== null}
+            placeholder="Pick tags to filter"
+            onChange={setFilters}
+            data={(tagData ?? []).map((tag) => ({
+              label: tag.title,
+              value: tag.id,
+            }))}
+          />
         </Flex>
 
-        {isLoading || searchLoading ? (
+        {isLoading || searchLoading || filterLoading ? (
           <Flex align="center" justify="center" flex={1}>
             <Loader />
           </Flex>
@@ -138,21 +137,31 @@ export function TodoPage() {
         ) : (
           <>
             <Flex gap="md">
-              {layout.map((column, i) => (
-                <Flex gap="md" direction="column" flex={1} key={i}>
-                  {column.map((todo) => (
-                    <TodoCard key={todo.id} todo={todo} />
-                  ))}
+              {layout.flat().length === 0 ? (
+                <Flex flex={1} align="center" justify="center">
+                  <Text size="sm" c="dimmed">
+                    No todos here
+                  </Text>
                 </Flex>
-              ))}
+              ) : (
+                layout.map((column, i) => (
+                  <Flex gap="md" direction="column" flex={1} key={i}>
+                    {column.map((todo) => (
+                      <TodoCard key={todo.id} todo={todo} />
+                    ))}
+                  </Flex>
+                ))
+              )}
             </Flex>
-            <Flex mt="auto" justify="center">
-              <Pagination
-                value={page}
-                onChange={setPage}
-                total={Math.ceil((data?.total ?? 1) / perPage)}
-              />
-            </Flex>
+            {isPaginated && (
+              <Flex mt="auto" justify="center">
+                <Pagination
+                  value={page}
+                  onChange={setPage}
+                  total={Math.ceil((data?.total ?? 1) / perPage)}
+                />
+              </Flex>
+            )}
           </>
         )}
       </Flex>
