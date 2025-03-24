@@ -38,9 +38,9 @@ async function getRecommendation<T>(
 }
 
 const reccomendContentSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  priority: z.enum(["high", "medium", "low"]),
+  title: z.string(),
+  description: z.string(),
+  priority: z.enum(["high", "medium", "low", ""]),
   tags: z.array(z.string()),
 });
 
