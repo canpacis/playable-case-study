@@ -99,7 +99,7 @@ export function TodoForm({
   if (defaultValue) {
     initialValues = {
       ...defaultValue,
-      tags: [],
+      tags: defaultValue.tags.map(tag => tag.title),
     };
   } else {
     if (lastForm) {
@@ -323,27 +323,29 @@ export function TodoForm({
               description="Organize your todos with tags"
               placeholder="Enter tags"
               key={form.key("tags")}
-              onChange={(values) => {
-                if (!tagData) {
-                  return;
-                }
+              // this does not work
+              // value={form.values.tags}
+              // onChange={(values) => {
+              //   if (!tagData) {
+              //     return;
+              //   }
 
-                // Either set the tags form value or create a new tag
-                form.setFieldValue(
-                  "tags",
-                  values
-                    .map((tag) => {
-                      const found = tagData.find((data) => data.title === tag);
-                      if (found) {
-                        return found.id;
-                      }
+              //   // Either set the tags form value or create a new tag
+              //   form.setFieldValue(
+              //     "tags",
+              //     values
+              //       .map((tag) => {
+              //         const found = tagData.find((data) => data.title === tag);
+              //         if (found) {
+              //           return found.id;
+              //         }
 
-                      createTag.mutate(tag);
-                      return undefined;
-                    })
-                    .filter((item) => item !== undefined)
-                );
-              }}
+              //         createTag.mutate(tag);
+              //         return undefined;
+              //       })
+              //       .filter((item) => item !== undefined)
+              //   );
+              // }}
               disabled={tagsLoading || createTag.isPending || tagError !== null}
               data={tagData?.map((item) => item.title) ?? []}
             />
