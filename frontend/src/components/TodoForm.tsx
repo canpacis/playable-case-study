@@ -428,6 +428,7 @@ export function TodoForm({
               loading={
                 create.isPending ||
                 update.isPending ||
+                recommendation.isPending ||
                 uploadLoading ||
                 attachmentLoading
               }
