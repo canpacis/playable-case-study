@@ -44,7 +44,10 @@ export type Tag = {
   createdAt: Date;
 };
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL =
+  import.meta.env.VITE_ENV === "development"
+    ? "http://localhost:5000"
+    : "http://playable.canpacis.net:5000";
 
 export const endpoints = {
   listTodos: "/todos",
