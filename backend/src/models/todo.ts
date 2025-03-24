@@ -1,5 +1,6 @@
 import { Schema, model } from "mongoose";
 import type { FileDTO, ImageDTO } from "@models/file";
+import type { TodoRecommendation } from "@controllers/ai";
 
 export const schemaDef = {
   title: String,
@@ -10,6 +11,12 @@ export const schemaDef = {
   tags: [{ type: Schema.Types.ObjectId, ref: "Tag" }],
   attachments: [{ type: Schema.Types.ObjectId, ref: "File" }],
   createdAt: Date,
+  recommendation: {
+    title: String,
+    description: String,
+    priority: String,
+    tags: [{ type: String }],
+  },
 } as const;
 const schema = new Schema(schemaDef);
 
@@ -27,6 +34,7 @@ export type TodoDTO = {
   priority: TodoPriority;
   tags: TagDTO[];
   attachments: FileDTO[];
+  recommendation: TodoRecommendation;
   createdAt: Date;
 };
 

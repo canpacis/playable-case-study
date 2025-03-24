@@ -1,17 +1,8 @@
 import { z } from "zod";
 import { AppError } from "@config/error";
 import { StatusCodes } from "http-status-codes";
-import {
-  formatZodError,
-  type Context,
-  type Paginated,
-} from "@utils/misc";
-import {
-  Tag,
-  Todo,
-  type TodoDTO,
-  type TodoPriority,
-} from "@models/todo";
+import { formatZodError, type Context, type Paginated } from "@utils/misc";
+import { Tag, Todo, type TodoDTO, type TodoPriority } from "@models/todo";
 import { FileUpload, ImageUpload } from "@models/file";
 import type { Document } from "mongoose";
 import { getFileFromDoc, getImageFromDoc } from "@controllers/file";
@@ -44,6 +35,7 @@ export async function getTodoFromDoc(document: any): Promise<TodoDTO> {
     priority: document.priority as TodoPriority,
     tags: tags,
     attachments: attachments,
+    recommendation: document.recommendation,
     createdAt: new Date(document.createdAt!),
   };
 }
@@ -59,6 +51,13 @@ const createTodoSchema = z.object({
   image: z.string().length(24).optional(),
   tags: z.array(z.string().length(24)),
   attachments: z.array(z.string().length(24)),
+  recommendation: z.object({
+    title: z.string().min(1).max(40),
+    description: z.string(),
+    priority: z.enum(["high", "medium", "low"]),
+    // these are raw strings not ids
+    tags: z.array(z.string()),
+  }),
 });
 
 export type CreateTodoDTO = z.infer<typeof createTodoSchema>;
@@ -165,6 +164,13 @@ const updateTodoSchema = z.object({
   image: z.string().length(24).optional(),
   tags: z.array(z.string().length(24)),
   attachments: z.array(z.string().length(24)),
+  recommendation: z.object({
+    title: z.string().min(1).max(40),
+    description: z.string(),
+    priority: z.enum(["high", "medium", "low"]),
+    // these are raw strings not ids
+    tags: z.array(z.string()),
+  }),
 });
 
 export type UpdateTodoDTO = z.infer<typeof updateTodoSchema>;
@@ -220,6 +226,7 @@ export async function updateTodo(
       image: data.image,
       tags: data.tags,
       attachments: data.attachments,
+      recommendation: data.recommendation,
     });
 
     return await getTodoFromDoc(document);
