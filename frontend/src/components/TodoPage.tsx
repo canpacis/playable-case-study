@@ -16,6 +16,7 @@ import {
   Text,
   TextInput,
   Checkbox,
+  Pagination,
 } from "@mantine/core";
 import { auth } from "@utils/auth";
 import { TodoCard } from "@components/Todo";
@@ -37,15 +38,20 @@ function chunkToMasonryLayout(items: Todo[], cols: number) {
 
 export function TodoPage() {
   const user = auth.currentUser!;
+  const perPage = 9;
+  const [page, setPage] = useState(1);
   const [searchValue, setSearchValue] = useState("");
   const [debounced] = useDebouncedValue(searchValue, 200);
 
   const [modalOpened, { open: openModal, close: closeModal }] =
     useDisclosure(false);
   const { isLoading, error, data } = useQuery({
-    queryKey: [user.uid, "todo-list"],
+    queryKey: [user.uid, "todo-list", page],
     queryFn: () =>
-      query<Paginated<Todo>>(endpoints.listTodos, { page: 1, perPage: 10 }),
+      query<Paginated<Todo>>(endpoints.listTodos, {
+        page: page,
+        perPage: perPage,
+      }),
   });
 
   const {
@@ -130,15 +136,24 @@ export function TodoPage() {
             <Text>There was an error while loading. Please try again</Text>
           </Flex>
         ) : (
-          <Flex gap="md">
-            {layout.map((column, i) => (
-              <Flex gap="md" direction="column" flex={1} key={i}>
-                {column.map((todo) => (
-                  <TodoCard key={todo.id} todo={todo} />
-                ))}
-              </Flex>
-            ))}
-          </Flex>
+          <>
+            <Flex gap="md">
+              {layout.map((column, i) => (
+                <Flex gap="md" direction="column" flex={1} key={i}>
+                  {column.map((todo) => (
+                    <TodoCard key={todo.id} todo={todo} />
+                  ))}
+                </Flex>
+              ))}
+            </Flex>
+            <Flex mt="auto" justify="center">
+              <Pagination
+                value={page}
+                onChange={setPage}
+                total={Math.ceil((data?.total ?? 1) / perPage)}
+              />
+            </Flex>
+          </>
         )}
       </Flex>
     </Container>
